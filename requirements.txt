@@ -1,19 +1,14 @@
-# Core dependencies
-streamlit>=1.28.0
-pandas>=2.0.0
-plotly>=5.17.0
+streamlit==1.30.0
+pandas==1.5.3
+numpy==1.24.4
+plotly==5.18.0
 
-# Google Sheets integration
-streamlit-gsheets>=0.0.2
-gspread>=5.11.0
-google-auth>=2.23.0
-google-auth-oauthlib>=1.1.0
-google-auth-httplib2>=0.1.1
+streamlit-gsheets==0.0.2
+gspread==5.11.3
+google-auth==2.23.4
+google-auth-oauthlib==1.1.0
+google-auth-httplib2==0.1.1
 
-# Data manipulation and utilities
-numpy>=1.24.0
-python-dateutil>=2.8.2
-
-# Optional but recommended
-openpyxl>=3.1.0  # For Excel file support
-Pillow>=10.0.0   # For image handling
+python-dateutil==2.8.2
+openpyxl==3.1.2
+Pillow==10.2.0
