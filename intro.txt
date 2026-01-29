@@ -1,0 +1,38 @@
+st.set_page_config(
+    page_title="Lumina - Sistema de Gestión",
+    page_icon="✨",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+st.title("✨ Lumina - Sistema de Gestión")
+st.markdown("### Bienvenido al Sistema de Gestión Integral")
+
+st.markdown("""
+---
+## 📊 Navegación
+
+Utiliza el menú lateral para acceder a las diferentes secciones:
+
+- **Dashboard**: Vista general con métricas y estadísticas
+- **Citas**: Gestión de citas y seguimiento
+- **Prospección**: Administración de prospectos
+- **Proyectos**: Control de proyectos
+
+---
+""")
+
+# Información adicional
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.info("📅 **Citas**\n\nGestiona y organiza tus citas con clientes.")
+
+with col2:
+    st.success("🎯 **Prospección**\n\nAdministra tus prospectos y oportunidades.")
+
+with col3:
+    st.warning("📂 **Proyectos**\n\nControla el avance de tus proyectos.")
+
+st.markdown("---")
+st.markdown("*Selecciona una opción del menú lateral para comenzar*")

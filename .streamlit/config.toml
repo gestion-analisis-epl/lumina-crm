@@ -1,0 +1,55 @@
+[client]
+showErrorDetails = "none"
+
+[server]
+enableStaticServing = true
+
+[[theme.fontFaces]]
+url = "app/static/Google_Sans/GoogleSans-Regular.ttf"
+family = "Google Sans"
+weight = 100
+
+[[theme.fontFaces]]
+url = "app/static/Google_Sans/GoogleSans-Regular.ttf"
+family = "Google Sans"
+weight = 300
+
+[[theme.fontFaces]]
+url = "app/static/Google_Sans/GoogleSans-Regular.ttf"
+family = "Google Sans"
+weight = 400
+
+[[theme.fontFaces]]
+url = "app/static/Google_Sans/GoogleSans-Medium.ttf"
+family = "Google Sans"
+weight = 500
+
+[[theme.fontFaces]]
+url = "app/static/Google_Sans/GoogleSans-SemiBold.ttf"
+family = "Google Sans"
+weight = 700
+
+[[theme.fontFaces]]
+url = "app/static/Google_Sans/GoogleSans-Bold.ttf"
+family = "Google Sans"
+weight = 900
+
+[theme]
+base = "light"
+primaryColor = "#003057"
+backgroundColor = "#f5f5f5"
+secondaryBackgroundColor = "#ffffff"
+
+font = "Google Sans, sans-serif"
+baseFontSize = 16
+baseFontWeight = 300
+headingFont = "Google Sans, sans-serif"
+headingFontSizes = ["2.5rem", "2rem", "1,75rem"]
+headingFontWeights = [700, 500, 400]
+# codeFont = "Fira Code"
+# codeFontSize = "0.8rem"
+baseRadius = "small"
+buttonRadius = "large"
+# dataframeBorderColor
+# dataframeBorderColor
+dataframeHeaderBackgroundColor = "#b8d4eb"
