@@ -232,6 +232,93 @@ def mostrar_grafico_proyectos_estado(proyectos_filtrados):
         st.info("No hay proyectos para mostrar la distribución por estado")
 
 
+def mostrar_grafico_citas_por_mes(citas_filtradas):
+    """
+    Muestra un gráfico de área con el número de citas por mes
+    
+    Args:
+        citas_filtradas: DataFrame de citas filtradas
+    """
+    if len(citas_filtradas) > 0 and 'FECHA' in citas_filtradas.columns:
+        # Crear una copia para no modificar el DataFrame original
+        df_temp = citas_filtradas.copy()
+        
+        # Convertir la columna de fecha a datetime con formato específico
+        df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce', dayfirst=True)
+        
+        # Filtrar fechas válidas
+        citas_con_fecha = df_temp[df_temp['FECHA'].notna()].copy()
+        
+        if len(citas_con_fecha) > 0:
+            # Diccionario de meses en español
+            meses_es = {
+                1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+                5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+                9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+            }
+            
+            # Extraer año y mes
+            citas_con_fecha['Año'] = citas_con_fecha['FECHA'].dt.year
+            citas_con_fecha['Mes_Num'] = citas_con_fecha['FECHA'].dt.month
+            citas_con_fecha['Año_Mes'] = citas_con_fecha['FECHA'].dt.to_period('M')
+            
+            # Contar citas por mes
+            citas_por_mes = citas_con_fecha.groupby(['Año_Mes', 'Año', 'Mes_Num']).size().reset_index(name='Cantidad')
+            
+            # Crear etiqueta en español
+            citas_por_mes['Mes'] = citas_por_mes.apply(
+                lambda row: f"{meses_es[row['Mes_Num']]} {int(row['Año'])}", 
+                axis=1
+            )
+            
+            # Ordenar por fecha
+            citas_por_mes = citas_por_mes.sort_values('Año_Mes')
+            
+            # Crear el gráfico de área
+            fig = px.area(
+                citas_por_mes,
+                x='Mes',
+                y='Cantidad',
+                title='Evolución de Citas por Mes',
+                labels={'Mes': 'Mes', 'Cantidad': 'Número de Citas'},
+                color_discrete_sequence=['#4ECDC4']
+            )
+            
+            # Personalizar el gráfico con líneas suavizadas y degradado
+            fig.update_traces(
+                line_shape='spline',  # Líneas suavizadas
+                fillgradient=dict(
+                    type='vertical',
+                    colorscale=[
+                        [0, 'rgba(78, 205, 196, 0.1)'],  # Color más transparente en la parte inferior
+                        [1, 'rgba(78, 205, 196, 0.6)']   # Color más opaco en la parte superior
+                    ]
+                ),
+                line=dict(width=3, color='#4ECDC4')
+            )
+            
+            # Personalizar el layout
+            fig.update_layout(
+                xaxis_title='Mes',
+                yaxis_title='Número de Citas',
+                hovermode='x unified',
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(size=12),
+                margin=dict(l=20, r=20, t=40, b=20)
+            )
+            
+            # Personalizar los ejes
+            fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
+            fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
+            
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No hay citas con fechas válidas para mostrar la evolución mensual")
+    else:
+        st.info("No hay citas disponibles para mostrar la evolución mensual")
+
+
 def mostrar_actividad_reciente(citas_filtradas, prospeccion_filtrada, proyectos_filtrados):
     """
     Muestra las tablas de actividad reciente

@@ -11,7 +11,7 @@ CUSTOM_CSS = """
         backdrop-filter: blur(5px);
         border: 1px solid rgba(255, 255, 255, 0.3); 
         text-align: center; 
-        height: 100px;
+        height: 150px;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;

@@ -113,6 +113,14 @@ try:
     
     st.markdown("---")
     
+    # ========== EVOLUCIÓN DE CITAS ==========
+    st.markdown("#### :material/show_chart: Evolución de Citas por Mes")
+    
+    # Gráfico de área de citas por mes
+    charts.mostrar_grafico_citas_por_mes(citas_filtradas)
+    
+    st.markdown("---")
+    
     # ========== ESTADO DEL PIPELINE ==========
     st.markdown("#### :material/donut_small: Estado del Pipeline")
     
