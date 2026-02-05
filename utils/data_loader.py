@@ -1,21 +1,19 @@
 """
-Carga de datos desde Google Sheets
+Carga de datos desde Supabase
 """
 import pandas as pd
-from streamlit_gsheets import GSheetsConnection
+from .supabase_client import get_supabase_client
+import streamlit as st
 
 
 class DataLoader:
-    """Manejador de conexión y carga de datos desde Google Sheets"""
+    """Manejador de conexión y carga de datos desde Supabase"""
     
-    def __init__(self, connection):
+    def __init__(self):
         """
         Inicializa el cargador de datos
-        
-        Args:
-            connection: Conexión de Streamlit a Google Sheets
         """
-        self.conn = connection
+        self.client = get_supabase_client()
         self.citas_data = None
         self.prospeccion_data = None
         self.proyectos_data = None
@@ -23,43 +21,58 @@ class DataLoader:
     
     def cargar_todos_datos(self):
         """
-        Carga todos los datos de las hojas de Google Sheets
+        Carga todos los datos de las tablas de Supabase
         
         Returns:
             tuple: (citas_data, prospeccion_data, proyectos_data, metas_data)
         """
-        self.citas_data = self.conn.read(worksheet="CITAS", ttl=5).dropna(how="all")
-        self.prospeccion_data = self.conn.read(worksheet="PROSPECCION", ttl=5).dropna(how="all")
-        self.proyectos_data = self.conn.read(worksheet="PROYECTOS", ttl=5).dropna(how="all")
-        self.metas_data = self.conn.read(worksheet="METAS", ttl=5).dropna(how="all")
-        
-        return self.citas_data, self.prospeccion_data, self.proyectos_data, self.metas_data
+        try:
+            # Cargar CITAS
+            citas_response = self.client.select("citas").execute()
+            self.citas_data = pd.DataFrame(citas_response.data) if citas_response.data else pd.DataFrame()
+            
+            # Cargar PROSPECCION
+            prospeccion_response = self.client.select("prospeccion").execute()
+            self.prospeccion_data = pd.DataFrame(prospeccion_response.data) if prospeccion_response.data else pd.DataFrame()
+            
+            # Cargar PROYECTOS
+            proyectos_response = self.client.select("proyectos").execute()
+            self.proyectos_data = pd.DataFrame(proyectos_response.data) if proyectos_response.data else pd.DataFrame()
+            
+            # Cargar METAS
+            metas_response = self.client.select("metas").execute()
+            self.metas_data = pd.DataFrame(metas_response.data) if metas_response.data else pd.DataFrame()
+            
+            return self.citas_data, self.prospeccion_data, self.proyectos_data, self.metas_data
+        except Exception as e:
+            st.error(f"Error al cargar datos desde Supabase: {str(e)}")
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     
     def obtener_lista_asesores(self):
         """
-        Obtiene la lista única de asesores de todas las hojas
+        Obtiene la lista única de asesores de todas las tablas
         
         Returns:
             list: Lista ordenada de asesores únicos
         """
         asesores_citas = (
-            self.citas_data['ASESOR'].dropna().unique().tolist()
-            if 'ASESOR' in self.citas_data.columns and len(self.citas_data) > 0
+            self.citas_data['asesor'].dropna().unique().tolist()
+            if 'asesor' in self.citas_data.columns and len(self.citas_data) > 0
             else []
         )
         asesores_prospeccion = (
-            self.prospeccion_data['ASESOR'].dropna().unique().tolist()
-            if 'ASESOR' in self.prospeccion_data.columns and len(self.prospeccion_data) > 0
+            self.prospeccion_data['asesor'].dropna().unique().tolist()
+            if 'asesor' in self.prospeccion_data.columns and len(self.prospeccion_data) > 0
             else []
         )
         asesores_proyectos = (
-            self.proyectos_data['ASESOR'].dropna().unique().tolist()
-            if 'ASESOR' in self.proyectos_data.columns and len(self.proyectos_data) > 0
+            self.proyectos_data['asesor'].dropna().unique().tolist()
+            if 'asesor' in self.proyectos_data.columns and len(self.proyectos_data) > 0
             else []
         )
         asesores_metas = (
-            self.metas_data['Asesor'].dropna().unique().tolist()
-            if 'Asesor' in self.metas_data.columns and len(self.metas_data) > 0
+            self.metas_data['asesor'].dropna().unique().tolist()
+            if 'asesor' in self.metas_data.columns and len(self.metas_data) > 0
             else []
         )
         
@@ -70,16 +83,13 @@ class DataLoader:
         return todos_asesores
 
 
-def inicializar_conexion(st_connection):
+def inicializar_conexion():
     """
     Función helper para inicializar la conexión y cargar datos
-    
-    Args:
-        st_connection: Objeto st.connection de Streamlit
         
     Returns:
         DataLoader: Instancia del cargador de datos
     """
-    loader = DataLoader(st_connection)
+    loader = DataLoader()
     loader.cargar_todos_datos()
     return loader

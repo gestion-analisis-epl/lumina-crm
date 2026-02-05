@@ -3,7 +3,6 @@ Analytics - Análisis Profundo
 Análisis detallado de ventas y actividad comercial
 """
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 
 # Importar módulos personalizados
 from utils.dashboard_config import setup_page_config, apply_custom_styles
@@ -19,10 +18,9 @@ apply_custom_styles()
 
 st.title(":material/analytics: Analytics")
 
-# Conexión a Google Sheets y carga de datos
+# Conexión a Supabase y carga de datos
 try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    data_loader = inicializar_conexion(conn)
+    data_loader = inicializar_conexion()
     
     citas_data = data_loader.citas_data
     prospeccion_data = data_loader.prospeccion_data
@@ -103,7 +101,7 @@ try:
         st.markdown("---")
         
         # Análisis de Proyectos
-        st.markdown("#### :material/assessment: Análisis de Proyectos")
+        st.markdown("#### :material/assessment: Análisis de Proyectos/Cotizaciones")
         
         metricas_estado = calculator.metricas_proyectos_por_estado(proyectos_filtrados)
         
@@ -111,19 +109,19 @@ try:
         
         with col1:
             st.metric(
-                label=":material/build: Proyectos en Proceso ($)",
+                label=":material/build: Proyectos/Cotizaciones en Proceso ($)",
                 value=f"${metricas_estado['proyectos_proceso']:,.2f}"
             )
         
         with col2:
             st.metric(
-                label=":material/emoji_events: Proyectos Ganados ($)",
+                label=":material/emoji_events: Proyectos/Cotizaciones Ganados ($)",
                 value=f"${metricas_estado['proyectos_ganados']:,.2f}"
             )
         
         with col3:
             st.metric(
-                label=":material/cancel: Proyectos Perdidos ($)",
+                label=":material/cancel: Proyectos/Cotizaciones Perdidos ($)",
                 value=f"${metricas_estado['proyectos_perdidos']:,.2f}"
             )
         
@@ -206,7 +204,7 @@ try:
         
         with col_p3:
             st.metric(
-                label="Total Proyectos",
+                label="Total Proyectos/Cotizaciones",
                 value=metricas['total_proyectos']
             )
         
@@ -229,7 +227,7 @@ try:
         tab_citas, tab_prosp, tab_proy = st.tabs([
             "Últimas Citas", 
             "Últimos Prospectos", 
-            "Últimos Proyectos"
+            "Últimos Proyectos/Cotizaciones"
         ])
         
         with tab_citas:
@@ -242,11 +240,23 @@ try:
                 if columnas_mostrar:
                     st.dataframe(
                         citas_filtradas[columnas_mostrar].head(5), 
-                        use_container_width=True,
+                        width='stretch',
                         hide_index=True
                     )
                 else:
-                    st.dataframe(citas_filtradas.head(5), use_container_width=True, hide_index=True)
+                    st.dataframe(citas_filtradas.head(5), width='stretch', hide_index=True,
+                                 column_config={
+                                     "id": None,
+                                     "cita_id": "ID Cita",
+                                     "asesor": "Asesor",
+                                     "fecha": "Fecha",
+                                     "prospecto": "Prospecto",
+                                     "giro": "Giro",
+                                     "accion_seguir": "Acción a Seguir",
+                                     "ultimo_contacto": "Último Contacto",
+                                     "created_at": None,
+                                     "updated_at": None
+                                 })
             else:
                 st.info("No hay citas registradas")
         
@@ -259,12 +269,20 @@ try:
                 
                 if columnas_mostrar:
                     st.dataframe(
-                        prospeccion_filtrada[columnas_mostrar].head(5), 
-                        use_container_width=True,
-                        hide_index=True
-                    )
+                        prospeccion_filtrada[columnas_mostrar].head(5), width='stretch', hide_index=True)
                 else:
-                    st.dataframe(prospeccion_filtrada.head(5), use_container_width=True, hide_index=True)
+                    st.dataframe(prospeccion_filtrada.head(5), width='stretch', hide_index=True,
+                                 column_config={
+                                     "id": None,
+                                     "prospecto_id": "ID Prospecto",
+                                     "asesor": "Asesor",
+                                     "fecha": "Fecha",
+                                     "prospecto": "Prospecto",
+                                     "tipo": "Tipo",
+                                     "accion": "Acción",
+                                     "created_at": None,
+                                     "updated_at": None
+                        })
             else:
                 st.info("No hay prospectos registrados")
         
@@ -282,10 +300,24 @@ try:
                         hide_index=True
                     )
                 else:
-                    st.dataframe(proyectos_filtrados.head(5), use_container_width=True, hide_index=True)
+                    st.dataframe(proyectos_filtrados.head(5), use_container_width=True, hide_index=True,
+                                 column_config={
+                                     "id": None,
+                                     "proyecto_id": "ID Proyecto",
+                                     "asesor": "Asesor",
+                                     "cotizacion": "# de Cotización",
+                                     "proyecto": "Proyecto/Cotización",
+                                     "cliente": "Cliente",
+                                     "status": "Status",
+                                     "total": st.column_config.NumberColumn("Total MXN", format="$ %.2f"),
+                                     "motivo_perdida": "Motivo de Pérdida",
+                                     "observaciones": "Observaciones",
+                                     "created_at": None,
+                                     "updated_at": None
+                                 })
             else:
                 st.info("No hay proyectos registrados")
 
 except Exception as e:
     st.error(f"Error al cargar datos: {str(e)}")
-    st.info("Asegúrate de que las hojas CITAS, PROSPECCION, PROYECTOS y METAS existan en tu Google Sheets.")
+    st.info("Asegúrate de que las tablas CITAS, PROSPECCION, PROYECTOS y METAS existan en tu base de datos.")

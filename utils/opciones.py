@@ -1,7 +1,7 @@
 ASESORES = [
     "Hugo Enrique Pérez Ramírez",
     "José Alvaro Martínez Espejel",
-    "Carlos Iván Lara Mendoza",
+    "Carlos Ortiz",
     "Mauricio Gutiérrez Pérez Palma",
 ]
 
@@ -137,5 +137,7 @@ GIROS_NEGOCIO = [
     "Servicios funerarios",
     "Lavanderías y tintorerías",
     "Estéticas y salones de belleza",
-    "Asociaciones y organizaciones civiles (ONGs)"
+    "Asociaciones y organizaciones civiles (ONGs)",
+    
+    "Otro"
 ]

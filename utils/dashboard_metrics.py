@@ -36,14 +36,14 @@ class MetricsCalculator:
         
         # Calcular ticket promedio
         vendidos = proyectos_filtrados[
-            (proyectos_filtrados['STATUS'] == 'Vendido') |
-            (proyectos_filtrados['STATUS'] == 'Ganado')
-        ] if 'STATUS' in proyectos_filtrados.columns else proyectos_filtrados.iloc[0:0]
+            (proyectos_filtrados['status'] == 'Vendido') |
+            (proyectos_filtrados['status'] == 'Ganado')
+        ] if 'status' in proyectos_filtrados.columns else proyectos_filtrados.iloc[0:0]
         
-        ticket_promedio = vendidos['TOTAL'].sum() / len(vendidos) if len(vendidos) > 0 else 0
+        ticket_promedio = vendidos['total'].sum() / len(vendidos) if len(vendidos) > 0 else 0
         
         # Calcular total cartera
-        total_cartera = proyectos_filtrados['TOTAL'].sum() if proyectos_filtrados.shape[0] > 0 else 0
+        total_cartera = proyectos_filtrados['total'].sum() if proyectos_filtrados.shape[0] > 0 else 0
         
         return {
             'total_citas': total_citas,
@@ -60,11 +60,11 @@ class MetricsCalculator:
         Returns:
             dict: Diccionario con métricas de citas semanales
         """
-        if 'FECHA_DT' in self.citas_data.columns or 'FECHA' in self.citas_data.columns:
+        if 'fecha_dt' in self.citas_data.columns or 'fecha' in self.citas_data.columns:
             citas_con_fecha = self.citas_data.copy()
-            if 'FECHA_DT' not in citas_con_fecha.columns:
-                citas_con_fecha['FECHA_DT'] = pd.to_datetime(
-                    citas_con_fecha['FECHA'], dayfirst=True, errors='coerce'
+            if 'fecha_dt' not in citas_con_fecha.columns:
+                citas_con_fecha['fecha_dt'] = pd.to_datetime(
+                    citas_con_fecha['fecha'], dayfirst=True, errors='coerce'
                 )
             
             # Aplicar filtros
@@ -73,26 +73,26 @@ class MetricsCalculator:
                 fecha_inicio_dt = pd.to_datetime(fecha_inicio)
                 fecha_fin_dt = pd.to_datetime(fecha_fin)
                 mask = (
-                    (citas_analisis['FECHA_DT'].notna()) &
-                    (citas_analisis['FECHA_DT'] >= fecha_inicio_dt) &
-                    (citas_analisis['FECHA_DT'] <= fecha_fin_dt)
+                    (citas_analisis['fecha_dt'].notna()) &
+                    (citas_analisis['fecha_dt'] >= fecha_inicio_dt) &
+                    (citas_analisis['fecha_dt'] <= fecha_fin_dt)
                 )
                 citas_analisis = citas_analisis[mask]
             
             if asesor_seleccionado and asesor_seleccionado != "Todos":
                 citas_analisis = citas_analisis[
-                    citas_analisis['ASESOR'].astype(str).str.strip() == asesor_seleccionado
+                    citas_analisis['asesor'].astype(str).str.strip() == asesor_seleccionado
                 ]
             
             # Calcular semana del año
-            citas_analisis['SEMANA'] = citas_analisis['FECHA_DT'].dt.isocalendar().week
-            citas_analisis['AÑO'] = citas_analisis['FECHA_DT'].dt.year
+            citas_analisis['semana'] = citas_analisis['fecha_dt'].dt.isocalendar().week
+            citas_analisis['ano'] = citas_analisis['fecha_dt'].dt.year
             
             # Contar citas por asesor y semana
-            citas_por_semana = citas_analisis.groupby(['ASESOR', 'AÑO', 'SEMANA']).size().reset_index(name='CITAS')
+            citas_por_semana = citas_analisis.groupby(['asesor', 'ano', 'semana']).size().reset_index(name='citas')
             
             # Calcular promedio
-            promedio_general = citas_por_semana['CITAS'].mean() if len(citas_por_semana) > 0 else 0
+            promedio_general = citas_por_semana['citas'].mean() if len(citas_por_semana) > 0 else 0
             
             # Determinar meta
             meta_citas = 20 if asesor_seleccionado == "Todos" else 5
@@ -112,7 +112,7 @@ class MetricsCalculator:
                 delta_color = "inverse"
             
             # Total de semanas analizadas
-            semanas_unicas = citas_por_semana[['AÑO', 'SEMANA']].drop_duplicates()
+            semanas_unicas = citas_por_semana[['ano', 'semana']].drop_duplicates()
             total_semanas = len(semanas_unicas)
             
             return {
@@ -132,17 +132,17 @@ class MetricsCalculator:
             dict: Diccionario con métricas por estado
         """
         proyectos_proceso = proyectos_filtrados[
-            proyectos_filtrados['STATUS'] == 'Proceso'
-        ]['TOTAL'].sum() if 'STATUS' in proyectos_filtrados.columns else 0
+            proyectos_filtrados['status'] == 'Proceso'
+        ]['total'].sum() if 'status' in proyectos_filtrados.columns else 0
         
         proyectos_ganados = proyectos_filtrados[
-            (proyectos_filtrados['STATUS'] == 'Vendido') |
-            (proyectos_filtrados['STATUS'] == 'Ganado')
-        ]['TOTAL'].sum() if 'STATUS' in proyectos_filtrados.columns else 0
+            (proyectos_filtrados['status'] == 'Vendido') |
+            (proyectos_filtrados['status'] == 'Ganado')
+        ]['total'].sum() if 'status' in proyectos_filtrados.columns else 0
         
         proyectos_perdidos = proyectos_filtrados[
-            proyectos_filtrados['STATUS'] == 'Perdido'
-        ]['TOTAL'].sum() if 'STATUS' in proyectos_filtrados.columns else 0
+            proyectos_filtrados['status'] == 'Perdido'
+        ]['total'].sum() if 'status' in proyectos_filtrados.columns else 0
         
         return {
             'proyectos_proceso': proyectos_proceso,
@@ -186,7 +186,7 @@ class MetricsCalculator:
                 # Filtrar metas para los meses en el rango
                 metas_filtradas = self.metas_data[
                     self.metas_data.apply(
-                        lambda row: (int(row['Mes']), int(row['Año'])) in meses_en_rango,
+                        lambda row: (int(row['mes']), int(row['ano'])) in meses_en_rango,
                         axis=1
                     )
                 ].copy() if len(meses_en_rango) > 0 else pd.DataFrame()
@@ -200,8 +200,8 @@ class MetricsCalculator:
             
             if len(self.metas_data) > 0:
                 metas_filtradas = self.metas_data[
-                    (self.metas_data['Mes'].astype(int) == mes_actual) &
-                    (self.metas_data['Año'].astype(int) == anio_actual)
+                    (self.metas_data['mes'].astype(int) == mes_actual) &
+                    (self.metas_data['ano'].astype(int) == anio_actual)
                 ].copy()
             else:
                 metas_filtradas = pd.DataFrame()
@@ -217,22 +217,22 @@ class MetricsCalculator:
         for asesor in asesores_analizar:
             # Obtener meta del asesor (sumar todas las metas del rango)
             meta_asesor = metas_filtradas[
-                metas_filtradas['Asesor'].astype(str).str.strip() == asesor
-            ]['Meta'].sum() if len(metas_filtradas) > 0 else 0
+                metas_filtradas['asesor'].astype(str).str.strip() == asesor
+            ]['meta'].sum() if len(metas_filtradas) > 0 else 0
             meta_total += meta_asesor
             
             # Calcular ventas
             ventas_asesor = proyectos_filtrados[
-                (proyectos_filtrados['ASESOR'].astype(str).str.strip() == asesor) &
-                ((proyectos_filtrados['STATUS'] == 'Vendido') | 
-                 (proyectos_filtrados['STATUS'] == 'Ganado'))
-            ]['TOTAL'].sum() if len(proyectos_filtrados) > 0 else 0
+                (proyectos_filtrados['asesor'].astype(str).str.strip() == asesor) &
+                ((proyectos_filtrados['status'] == 'Vendido') | 
+                 (proyectos_filtrados['status'] == 'Ganado'))
+            ]['total'].sum() if len(proyectos_filtrados) > 0 else 0
             ventas_totales += ventas_asesor
             
             # Calcular cotizaciones
             cotizaciones_asesor = proyectos_filtrados[
-                proyectos_filtrados['ASESOR'].astype(str).str.strip() == asesor
-            ]['TOTAL'].sum() if len(proyectos_filtrados) > 0 else 0
+                proyectos_filtrados['asesor'].astype(str).str.strip() == asesor
+            ]['total'].sum() if len(proyectos_filtrados) > 0 else 0
             cotizaciones_totales += cotizaciones_asesor
         
         # Calcular porcentajes y deltas
@@ -296,37 +296,37 @@ class MetricsCalculator:
         # Filtrar metas del trimestre actual
         if len(self.metas_data) > 0:
             metas_trimestre = self.metas_data[
-                (self.metas_data['Mes'].astype(int).isin(meses_trimestre)) &
-                (self.metas_data['Año'].astype(int) == anio_actual)
+                (self.metas_data['mes'].astype(int).isin(meses_trimestre)) &
+                (self.metas_data['ano'].astype(int) == anio_actual)
             ].copy()
         else:
             metas_trimestre = pd.DataFrame()
         
         # Sumar todas las metas del trimestre de todos los asesores
-        meta_trimestre_total = metas_trimestre['Meta'].sum() if len(metas_trimestre) > 0 else 0
+        meta_trimestre_total = metas_trimestre['meta'].sum() if len(metas_trimestre) > 0 else 0
         
         # Filtrar proyectos vendidos del trimestre actual
         proyectos_con_fecha = proyectos_filtrados.copy()
         
         # Asegurar que tenemos la columna de fecha
-        if 'FECHA_DT' not in proyectos_con_fecha.columns and 'FECHA' in proyectos_con_fecha.columns:
-            proyectos_con_fecha['FECHA_DT'] = pd.to_datetime(
-                proyectos_con_fecha['FECHA'], dayfirst=True, errors='coerce'
+        if 'fecha_dt' not in proyectos_con_fecha.columns and 'fecha' in proyectos_con_fecha.columns:
+            proyectos_con_fecha['fecha_dt'] = pd.to_datetime(
+                proyectos_con_fecha['fecha'], dayfirst=True, errors='coerce'
             )
         
         # Filtrar ventas del trimestre actual (vendidos o ganados)
-        if 'FECHA_DT' in proyectos_con_fecha.columns:
-            proyectos_con_fecha['MES'] = proyectos_con_fecha['FECHA_DT'].dt.month
-            proyectos_con_fecha['AÑO'] = proyectos_con_fecha['FECHA_DT'].dt.year
+        if 'fecha_dt' in proyectos_con_fecha.columns:
+            proyectos_con_fecha['mes'] = proyectos_con_fecha['fecha_dt'].dt.month
+            proyectos_con_fecha['ano'] = proyectos_con_fecha['fecha_dt'].dt.year
             
             ventas_trimestre = proyectos_con_fecha[
-                (proyectos_con_fecha['MES'].isin(meses_trimestre)) &
-                (proyectos_con_fecha['AÑO'] == anio_actual) &
-                ((proyectos_con_fecha['STATUS'] == 'Vendido') | 
-                 (proyectos_con_fecha['STATUS'] == 'Ganado'))
-            ] if 'STATUS' in proyectos_con_fecha.columns else proyectos_con_fecha.iloc[0:0]
+                (proyectos_con_fecha['mes'].isin(meses_trimestre)) &
+                (proyectos_con_fecha['ano'] == anio_actual) &
+                ((proyectos_con_fecha['status'] == 'Vendido') | 
+                 (proyectos_con_fecha['status'] == 'Ganado'))
+            ] if 'status' in proyectos_con_fecha.columns else proyectos_con_fecha.iloc[0:0]
             
-            ventas_trimestre_total = ventas_trimestre['TOTAL'].sum() if len(ventas_trimestre) > 0 else 0
+            ventas_trimestre_total = ventas_trimestre['total'].sum() if len(ventas_trimestre) > 0 else 0
         else:
             ventas_trimestre_total = 0
         

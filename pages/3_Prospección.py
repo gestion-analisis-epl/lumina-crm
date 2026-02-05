@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
+from utils.supabase_client import get_supabase_client
 import pandas as pd
 from datetime import datetime, date
 import math
@@ -28,8 +28,8 @@ st.markdown("""
 
 st.title(":material/emoji_events: Gestión de Prospección")
 
-# Conexión a Google Sheets
-conn = st.connection("gsheets", type=GSheetsConnection)
+# Conexión a Supabase
+client = get_supabase_client()
 
 # Inicializar estados de sesión
 if 'page_prospeccion' not in st.session_state:
@@ -45,20 +45,38 @@ if 'edit_index_prospeccion' not in st.session_state:
 @st.cache_data(ttl=5)
 def load_data():
     try:
-        data = conn.read(worksheet="PROSPECCION", ttl=5)
-        data = data.dropna(how="all")
-        return data
+        response = client.select("prospeccion").execute()
+        if response.data:
+            data = pd.DataFrame(response.data)
+            return data
+        return pd.DataFrame()
     except Exception as e:
         st.error(f"Error al cargar datos: {str(e)}")
         return pd.DataFrame()
 
-def save_data(df):
+def save_data(row_data, row_id=None):
+    """Guarda o actualiza un registro en Supabase"""
     try:
-        conn.update(worksheet="PROSPECCION", data=df)
+        if row_id:
+            # Actualizar registro existente
+            client.update("prospeccion", row_data, {"id": row_id})
+        else:
+            # Insertar nuevo registro
+            client.insert("prospeccion", row_data)
         st.cache_data.clear()
         return True
     except Exception as e:
         st.error(f"Error al guardar datos: {str(e)}")
+        return False
+
+def delete_data(row_id):
+    """Elimina un registro de Supabase"""
+    try:
+        client.delete("prospeccion", {"id": row_id})
+        st.cache_data.clear()
+        return True
+    except Exception as e:
+        st.error(f"Error al eliminar datos: {str(e)}")
         return False
 
 def generar_id():
@@ -76,13 +94,14 @@ def confirm_delete(idx):
     row = data.loc[idx]
     st.warning(f"¿Estás seguro de que deseas eliminar este prospecto?")
     
-    st.info(f"**Prospecto:** {row.get('PROSPECTO', '')}\n\n**Asesor:** {row.get('ASESOR', '')}\n\n**Fecha:** {row.get('FECHA', '')}")
+    st.info(f"**Prospecto:** {row.get('prospecto', '')}\n\n**Asesor:** {row.get('asesor', '')}\n\n**Fecha:** {row.get('fecha', '')}")
     
     col1, col2 = st.columns(2)
     with col1:
         if st.button(":material/delete: Sí, Eliminar", width='stretch', type="primary"):
-            data = data.drop(idx)
-            if save_data(data):
+            # Obtener el ID de la base de datos
+            row_id = row.get('id', '')
+            if row_id and delete_data(row_id):
                 st.success(":material/check_circle: Registro eliminado exitosamente")
                 time.sleep(1)
                 st.rerun()
@@ -101,26 +120,26 @@ def edit_dialog(idx):
     
     with st.form("form_editar_prospecto"):
         # Mostrar ID (no editable)
-        st.info(f"**ID:** {row.get('ID', '')}")
+        st.info(f"**ID:** {row.get('prospecto_id', '')}")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            asesor_edit = st.selectbox("Asesor *", ASESORES, index=ASESORES.index(row.get('ASESOR', '').title()) if row.get('ASESOR', '').title() in ASESORES else 0).title()
+            asesor_edit = st.selectbox("Asesor *", ASESORES, index=ASESORES.index(row.get('asesor', '').title()) if row.get('asesor', '').title() in ASESORES else 0).title()
             try:
                 fecha_edit = st.date_input("Fecha *", 
-                                          value=pd.to_datetime(row.get('FECHA', date.today())))
+                                          value=pd.to_datetime(row.get('fecha', date.today())))
             except:
                 fecha_edit = st.date_input("Fecha *", value=date.today())
         
         with col2:
-            prospecto_edit = st.text_input("Prospecto *", value=row.get('PROSPECTO', '')).title()
+            prospecto_edit = st.text_input("Prospecto *", value=row.get('prospecto', '')).title()
             tipo_options = ["Venta", "Renta"]
             tipo_edit = st.selectbox("Tipo", tipo_options,
-                                        index=tipo_options.index(row.get('TIPO', 'Venta')) if row.get('TIPO', 'Venta') in tipo_options else 0)
+                                        index=tipo_options.index(row.get('tipo', 'Venta')) if row.get('tipo', 'Venta') in tipo_options else 0)
         
         with col3:
-            accion_edit = st.text_area("Acción *", value=row.get('ACCION', '')).capitalize()
+            accion_edit = st.text_area("Acción *", value=row.get('accion', '')).capitalize()
         
         col_btn1, col_btn2 = st.columns(2)
         
@@ -131,15 +150,16 @@ def edit_dialog(idx):
         
         if guardar:
             if asesor_edit and prospecto_edit and accion_edit:
-                data.loc[idx] = {
-                    'ID': row.get('ID', ''),
-                    'ASESOR': asesor_edit,
-                    'FECHA': fecha_edit.strftime('%Y-%m-%d'),
-                    'PROSPECTO': prospecto_edit,
-                    'TIPO': tipo_edit,
-                    'ACCION': accion_edit
+                row_id = row.get('id', '')
+                updated_data = {
+                    'prospecto_id': row.get('prospecto_id', ''),
+                    'asesor': asesor_edit,
+                    'fecha': fecha_edit.strftime('%Y-%m-%d'),
+                    'prospecto': prospecto_edit,
+                    'tipo': tipo_edit,
+                    'accion': accion_edit
                 }
-                if save_data(data):
+                if save_data(updated_data, row_id):
                     st.success(":material/check_circle: Prospecto actualizado exitosamente!")
                     st.session_state.show_edit_dialog_prospeccion = False
                     st.session_state.edit_index_prospeccion = None
@@ -170,18 +190,16 @@ with st.container():
     
     if st.button(":material/save: Guardar Prospecto", key="guardar_prospecto", type="primary", use_container_width=True):
         if asesor and prospecto and accion:
-            data = load_data()
             nuevo_id = generar_id()
-            nueva_fila = pd.DataFrame([{
-                'ID': nuevo_id,
-                'ASESOR': asesor,
-                'FECHA': fecha.strftime('%Y-%m-%d'),
-                'PROSPECTO': prospecto,
-                'TIPO': tipo,
-                'ACCION': accion
-            }])
-            data = pd.concat([data, nueva_fila], ignore_index=True)
-            if save_data(data):
+            nuevo_prospecto = {
+                'prospecto_id': nuevo_id,
+                'asesor': asesor,
+                'fecha': fecha.strftime('%Y-%m-%d'),
+                'prospecto': prospecto,
+                'tipo': tipo,
+                'accion': accion
+            }
+            if save_data(nuevo_prospecto):
                 st.success(":material/check_circle: Prospecto agregado exitosamente!")
                 time.sleep(1)
                 st.rerun()
@@ -241,15 +259,15 @@ if len(data) > 0:
             cols = st.columns([1, 1.5, 2, 1.5, 2.5, 0.7, 0.7])
             
             with cols[0]:
-                st.text(row.get('FECHA', ''))
+                st.text(row.get('fecha', ''))
             with cols[1]:
-                st.text(row.get('ASESOR', ''))
+                st.text(row.get('asesor', ''))
             with cols[2]:
-                st.text(row.get('PROSPECTO', ''))
+                st.text(row.get('prospecto', ''))
             with cols[3]:
-                st.text(row.get('TIPO', ''))
+                st.text(row.get('tipo', ''))
             with cols[4]:
-                accion = str(row.get('ACCION', ''))
+                accion = str(row.get('accion', ''))
                 st.text(accion[:35] + '...' if len(accion) > 35 else accion)
             with cols[5]:
                 if st.button(":material/edit:", key=f"edit_prosp_{idx}", help="Editar", use_container_width=True):

@@ -1,6 +1,6 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 from utils.opciones import ASESORES, GIROS_NEGOCIO
+from utils.supabase_client import get_supabase_client
 import pandas as pd
 from datetime import datetime, date
 import math
@@ -28,8 +28,8 @@ st.markdown("""
 
 st.title(":material/calendar_today: Gestión de Citas")
 
-# Conexión a Google Sheets
-conn = st.connection("gsheets", type=GSheetsConnection)
+# Conexión a Supabase
+client = get_supabase_client()
 
 # Inicializar estados de sesión
 if 'page' not in st.session_state:
@@ -45,20 +45,38 @@ if 'edit_index' not in st.session_state:
 @st.cache_data(ttl=5)
 def load_data():
     try:
-        data = conn.read(worksheet="CITAS", ttl=5)
-        data = data.dropna(how="all")
-        return data
+        response = client.select("citas").execute()
+        if response.data:
+            data = pd.DataFrame(response.data)
+            return data
+        return pd.DataFrame()
     except Exception as e:
         st.error(f"Error al cargar datos: {str(e)}")
         return pd.DataFrame()
 
-def save_data(df):
+def save_data(row_data, row_id=None):
+    """Guarda o actualiza un registro en Supabase"""
     try:
-        conn.update(worksheet="CITAS", data=df)
+        if row_id:
+            # Actualizar registro existente
+            client.update("citas", row_data, {"id": row_id})
+        else:
+            # Insertar nuevo registro
+            client.insert("citas", row_data)
         st.cache_data.clear()
         return True
     except Exception as e:
         st.error(f"Error al guardar datos: {str(e)}")
+        return False
+
+def delete_data(row_id):
+    """Elimina un registro de Supabase"""
+    try:
+        client.delete("citas", {"id": row_id})
+        st.cache_data.clear()
+        return True
+    except Exception as e:
+        st.error(f"Error al eliminar datos: {str(e)}")
         return False
 
 def generar_id():
@@ -76,13 +94,14 @@ def confirm_delete(idx):
     row = data.loc[idx]
     st.warning(f"¿Estás seguro de que deseas eliminar esta cita?")
     
-    st.info(f"**Prospecto:** {row.get('PROSPECTO', '')}\n\n**Asesor:** {row.get('ASESOR', '')}\n\n**Fecha:** {row.get('FECHA', '')}")
+    st.info(f"**Prospecto:** {row.get('prospecto', '')}\n\n**Asesor:** {row.get('asesor', '')}\n\n**Fecha:** {row.get('fecha', '')}")
     
     col1, col2 = st.columns(2)
     with col1:
         if st.button(":material/delete: Sí, Eliminar", width='stretch', type="primary"):
-            data = data.drop(idx)
-            if save_data(data):
+            # Obtener el ID de la base de datos (no el índice del DataFrame)
+            row_id = row.get('id', '')
+            if row_id and delete_data(row_id):
                 st.success(":material/check_circle: Registro eliminado exitosamente")
                 time.sleep(1)
                 st.rerun()
@@ -101,27 +120,27 @@ def edit_dialog(idx):
     
     with st.form("form_editar_cita"):
         # Mostrar ID (no editable)
-        st.info(f"**ID:** {row.get('ID', '')}")
+        st.info(f"**ID:** {row.get('cita_id', '')}")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            asesor_edit = st.selectbox("Asesor *", ASESORES, index=ASESORES.index(row.get('ASESOR', '').title()) if row.get('ASESOR', '').title() in ASESORES else 0).title()
+            asesor_edit = st.selectbox("Asesor *", ASESORES, index=ASESORES.index(row.get('asesor', '').title()) if row.get('asesor', '').title() in ASESORES else 0).title()
             try:
                 fecha_edit = st.date_input("Fecha *", 
-                                          value=pd.to_datetime(row.get('FECHA', date.today())))
+                                          value=pd.to_datetime(row.get('fecha', date.today())))
             except:
                 fecha_edit = st.date_input("Fecha *", value=date.today())
         
         with col2:
-            prospecto_edit = st.text_input("Prospecto *", value=row.get('PROSPECTO', '')).title()
-            giro_edit = st.selectbox("Giro", GIROS_NEGOCIO, index=GIROS_NEGOCIO.index(row.get('GIRO', '').title()) if row.get('GIRO', '').title() in GIROS_NEGOCIO else 0).title()
+            prospecto_edit = st.text_input("Prospecto *", value=row.get('prospecto', '')).title()
+            giro_edit = st.selectbox("Giro", GIROS_NEGOCIO, index=GIROS_NEGOCIO.index(row.get('giro', '').title()) if row.get('giro', '').title() in GIROS_NEGOCIO else 0).title()
         
         with col3:
-            accion_seguir_edit = st.text_area("Acción a Seguir", value=row.get('ACCION A SEGUIR', '')).capitalize()
+            accion_seguir_edit = st.text_area("Acción a Seguir", value=row.get('accion_seguir', '')).capitalize()
             try:
                 ultimo_contacto_edit = st.date_input("Último Contacto", 
-                                                    value=pd.to_datetime(row.get('ULTIMO CONTACTO', date.today())))
+                                                    value=pd.to_datetime(row.get('ultimo_contacto', date.today())))
             except:
                 ultimo_contacto_edit = st.date_input("Último Contacto", value=date.today())
         
@@ -134,16 +153,17 @@ def edit_dialog(idx):
         
         if guardar:
             if asesor_edit and prospecto_edit:
-                data.loc[idx] = {
-                    'ID': row.get('ID', ''),
-                    'ASESOR': asesor_edit,
-                    'FECHA': fecha_edit.strftime('%Y-%m-%d'),
-                    'PROSPECTO': prospecto_edit,
-                    'GIRO': giro_edit,
-                    'ACCION A SEGUIR': accion_seguir_edit,
-                    'ULTIMO CONTACTO': ultimo_contacto_edit.strftime('%Y-%m-%d')
+                row_id = row.get('id', '')
+                updated_data = {
+                    'cita_id': row.get('cita_id', ''),
+                    'asesor': asesor_edit,
+                    'fecha': fecha_edit.strftime('%Y-%m-%d'),
+                    'prospecto': prospecto_edit,
+                    'giro': giro_edit,
+                    'accion_seguir': accion_seguir_edit,
+                    'ultimo_contacto': ultimo_contacto_edit.strftime('%Y-%m-%d')
                 }
-                if save_data(data):
+                if save_data(updated_data, row_id):
                     st.success(":material/check_circle: Cita actualizada exitosamente!")
                     st.session_state.show_edit_dialog = False
                     st.session_state.edit_index = None
@@ -168,6 +188,8 @@ with st.container():
     with col2:
         prospecto = st.text_input("Nombre de tu prospecto *", key="prospecto_cita").title()
         giro = st.selectbox("Selecciona un giro de negocio", GIROS_NEGOCIO, key="giro_cita").title()
+        if giro == "Otro":
+            giro = st.text_input("Especifica el giro de negocio", key="giro_otro_cita").title()
     
     with col3:
         accion_seguir = st.text_area("Acción a Seguir", key="accion_cita").capitalize()
@@ -175,19 +197,17 @@ with st.container():
     
     if st.button(":material/save: Guardar Cita", key="guardar_cita", type="primary", use_container_width=True):
         if asesor and prospecto:
-            data = load_data()
             nuevo_id = generar_id()
-            nueva_fila = pd.DataFrame([{
-                'ID': nuevo_id,
-                'ASESOR': asesor,
-                'FECHA': fecha_cita.strftime('%Y-%m-%d'),
-                'PROSPECTO': prospecto,
-                'GIRO': giro,
-                'ACCION A SEGUIR': accion_seguir,
-                'ULTIMO CONTACTO': ultimo_contacto.strftime('%Y-%m-%d')
-            }])
-            data = pd.concat([data, nueva_fila], ignore_index=True)
-            if save_data(data):
+            nueva_cita = {
+                'cita_id': nuevo_id,
+                'asesor': asesor,
+                'fecha': fecha_cita.strftime('%Y-%m-%d'),
+                'prospecto': prospecto,
+                'giro': giro,
+                'accion_seguir': accion_seguir,
+                'ultimo_contacto': ultimo_contacto.strftime('%Y-%m-%d')
+            }
+            if save_data(nueva_cita):
                 st.success(":material/check_circle: Cita agregada exitosamente!")
                 time.sleep(1)
                 st.rerun()
@@ -247,16 +267,16 @@ if len(data) > 0:
             cols = st.columns([1, 1.5, 1, 2, 2, 0.7, 0.7])
             
             with cols[0]:
-                st.text(row.get('FECHA', ''))
+                st.text(row.get('fecha', ''))
             with cols[1]:
-                st.text(row.get('ASESOR', ''))
+                st.text(row.get('asesor', ''))
             with cols[2]:
-                giro = str(row.get('GIRO', ''))
+                giro = str(row.get('giro', ''))
                 st.text(giro[:15] + '...' if len(giro) > 15 else giro)
             with cols[3]:
-                st.text(row.get('PROSPECTO', ''))
+                st.text(row.get('prospecto', ''))
             with cols[4]:
-                accion = str(row.get('ACCION A SEGUIR', ''))
+                accion = str(row.get('accion_seguir', ''))
                 st.text(accion[:30] + '...' if len(accion) > 30 else accion)
             with cols[5]:
                 if st.button(":material/edit:", key=f"edit_{idx}", help="Editar", use_container_width=True):

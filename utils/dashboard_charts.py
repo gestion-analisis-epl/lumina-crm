@@ -199,9 +199,9 @@ def mostrar_grafico_proyectos_estado(proyectos_filtrados):
     Args:
         proyectos_filtrados: DataFrame de proyectos filtrados
     """
-    if len(proyectos_filtrados) > 0 and 'STATUS' in proyectos_filtrados.columns:
+    if len(proyectos_filtrados) > 0 and 'status' in proyectos_filtrados.columns:
         # Contar proyectos por estado
-        proyectos_por_estado = proyectos_filtrados.groupby('STATUS').size().reset_index(name='Cantidad')
+        proyectos_por_estado = proyectos_filtrados.groupby('status').size().reset_index(name='Cantidad')
         
         st.markdown("#### :material/donut_small: Distribución de Proyectos por Estado")
         
@@ -214,13 +214,13 @@ def mostrar_grafico_proyectos_estado(proyectos_filtrados):
         }
         
         # Crear lista de colores basada en los estados presentes
-        colores = [color_map.get(estado, '#95A5A6') for estado in proyectos_por_estado['STATUS']]
+        colores = [color_map.get(estado, '#95A5A6') for estado in proyectos_por_estado['status']]
         
         fig = px.pie(
             proyectos_por_estado,
             values='Cantidad',
-            names='STATUS',
-            color='STATUS',
+            names='status',
+            color='status',
             color_discrete_map=color_map,
             hole=0.4  # Hacer un donut chart
         )
@@ -239,15 +239,15 @@ def mostrar_grafico_citas_por_mes(citas_filtradas):
     Args:
         citas_filtradas: DataFrame de citas filtradas
     """
-    if len(citas_filtradas) > 0 and 'FECHA' in citas_filtradas.columns:
+    if len(citas_filtradas) > 0 and 'fecha' in citas_filtradas.columns:
         # Crear una copia para no modificar el DataFrame original
         df_temp = citas_filtradas.copy()
         
         # Convertir la columna de fecha a datetime con formato específico
-        df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce', dayfirst=True)
+        df_temp['fecha'] = pd.to_datetime(df_temp['fecha'], errors='coerce', dayfirst=True)
         
         # Filtrar fechas válidas
-        citas_con_fecha = df_temp[df_temp['FECHA'].notna()].copy()
+        citas_con_fecha = df_temp[df_temp['fecha'].notna()].copy()
         
         if len(citas_con_fecha) > 0:
             # Diccionario de meses en español
@@ -258,29 +258,29 @@ def mostrar_grafico_citas_por_mes(citas_filtradas):
             }
             
             # Extraer año y mes
-            citas_con_fecha['Año'] = citas_con_fecha['FECHA'].dt.year
-            citas_con_fecha['Mes_Num'] = citas_con_fecha['FECHA'].dt.month
-            citas_con_fecha['Año_Mes'] = citas_con_fecha['FECHA'].dt.to_period('M')
+            citas_con_fecha['ano'] = citas_con_fecha['fecha'].dt.year
+            citas_con_fecha['Mes_Num'] = citas_con_fecha['fecha'].dt.month
+            citas_con_fecha['ano_mes'] = citas_con_fecha['fecha'].dt.to_period('M')
             
             # Contar citas por mes
-            citas_por_mes = citas_con_fecha.groupby(['Año_Mes', 'Año', 'Mes_Num']).size().reset_index(name='Cantidad')
+            citas_por_mes = citas_con_fecha.groupby(['ano_mes', 'ano', 'Mes_Num']).size().reset_index(name='Cantidad')
             
             # Crear etiqueta en español
-            citas_por_mes['Mes'] = citas_por_mes.apply(
-                lambda row: f"{meses_es[row['Mes_Num']]} {int(row['Año'])}", 
+            citas_por_mes['mes'] = citas_por_mes.apply(
+                lambda row: f"{meses_es[row['Mes_Num']]} {int(row['ano'])}", 
                 axis=1
             )
             
             # Ordenar por fecha
-            citas_por_mes = citas_por_mes.sort_values('Año_Mes')
+            citas_por_mes = citas_por_mes.sort_values('ano_mes')
             
             # Crear el gráfico de área
             fig = px.area(
                 citas_por_mes,
-                x='Mes',
+                x='mes',
                 y='Cantidad',
                 title='Evolución de Citas por Mes',
-                labels={'Mes': 'Mes', 'Cantidad': 'Número de Citas'},
+                labels={'mes': 'mes', 'Cantidad': 'Número de Citas'},
                 color_discrete_sequence=['#4ECDC4']
             )
             
@@ -299,7 +299,7 @@ def mostrar_grafico_citas_por_mes(citas_filtradas):
             
             # Personalizar el layout
             fig.update_layout(
-                xaxis_title='Mes',
+                xaxis_title='mes',
                 yaxis_title='Número de Citas',
                 hovermode='x unified',
                 plot_bgcolor='rgba(0,0,0,0)',
@@ -337,7 +337,7 @@ def mostrar_actividad_reciente(citas_filtradas, prospeccion_filtrada, proyectos_
         if len(citas_filtradas) > 0:
             # Seleccionar solo columnas relevantes para vista móvil
             columnas_mostrar = []
-            for col in ['FECHA', 'ASESOR', 'CLIENTE', 'EMPRESA', 'STATUS']:
+            for col in ['fecha', 'asesor', 'cliente', 'empresa', 'status']:
                 if col in citas_filtradas.columns:
                     columnas_mostrar.append(col)
             
@@ -356,7 +356,7 @@ def mostrar_actividad_reciente(citas_filtradas, prospeccion_filtrada, proyectos_
         if len(prospeccion_filtrada) > 0:
             # Seleccionar solo columnas relevantes para vista móvil
             columnas_mostrar = []
-            for col in ['FECHA', 'ASESOR', 'PROSPECTO', 'EMPRESA', 'STATUS']:
+            for col in ['fecha', 'asesor', 'prospecto', 'empresa', 'status']:
                 if col in prospeccion_filtrada.columns:
                     columnas_mostrar.append(col)
             
@@ -375,7 +375,7 @@ def mostrar_actividad_reciente(citas_filtradas, prospeccion_filtrada, proyectos_
         if len(proyectos_filtrados) > 0:
             # Seleccionar solo columnas relevantes para vista móvil
             columnas_mostrar = []
-            for col in ['FECHA', 'ASESOR', 'CLIENTE', 'TOTAL', 'STATUS']:
+            for col in ['fecha', 'asesor', 'cliente', 'total', 'status']:
                 if col in proyectos_filtrados.columns:
                     columnas_mostrar.append(col)
             

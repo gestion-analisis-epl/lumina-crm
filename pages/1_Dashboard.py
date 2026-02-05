@@ -3,7 +3,6 @@ Dashboard - Vista Ejecutiva
 ¿Cómo está mi negocio HOY? - Vista de 30 segundos
 """
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 
 # Importar módulos personalizados
 from utils.dashboard_config import setup_page_config, apply_custom_styles
@@ -19,10 +18,9 @@ apply_custom_styles()
 
 st.title(":material/dashboard: Dashboard Ejecutivo")
 
-# Conexión a Google Sheets y carga de datos
+# Conexión a Supabase y carga de datos
 try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    data_loader = inicializar_conexion(conn)
+    data_loader = inicializar_conexion()
     
     citas_data = data_loader.citas_data
     prospeccion_data = data_loader.prospeccion_data
@@ -101,7 +99,7 @@ try:
     
     with col3:
         st.metric(
-            label="Proyectos",
+            label="Proyectos/Cotizaciones",
             value=metricas['total_proyectos']
         )
     
@@ -130,18 +128,18 @@ try:
     st.markdown("---")
     
     # ========== PROYECTOS CRÍTICOS ==========
-    st.markdown("#### :material/priority_high: Últimos Proyectos")
+    st.markdown("#### :material/priority_high: Últimos Proyectos/Cotizaciones")
     
     if len(proyectos_filtrados) > 0:
         # Seleccionar columnas importantes
         columnas_mostrar = []
-        for col in ['FECHA', 'ASESOR', 'PROYECTO', 'CLIENTE', 'TOTAL', 'STATUS']:
+        for col in ['fecha', 'asesor', 'proyecto/cotización', 'cliente', 'total', 'status']:
             if col in proyectos_filtrados.columns:
                 columnas_mostrar.append(col)
         df = proyectos_filtrados[columnas_mostrar]
         if columnas_mostrar:
             st.dataframe(
-                df.head(5).style.format({"TOTAL": "${:,.2f}"}), 
+                df.head(5).style.format({"total": "${:,.2f}"}), 
                 use_container_width=True,
                 hide_index=True
             )
@@ -152,4 +150,4 @@ try:
 
 except Exception as e:
     st.error(f"Error al cargar datos: {str(e)}")
-    st.info("Asegúrate de que las hojas CITAS, PROSPECCION, PROYECTOS y METAS existan en tu Google Sheets.")
+    st.info("Asegúrate de que las tablas citas, prospeccion, proyectos y metas existan en tu base de datos Supabase.")

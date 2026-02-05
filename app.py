@@ -53,7 +53,7 @@ prospeccion_page = st.Page(
 
 proyectos_page = st.Page(
     page="pages/4_Proyectos.py",
-    title="Proyectos",
+    title="Proyectos/Cotizaciones",
     icon=":material/folder:"
     )
 
@@ -67,7 +67,7 @@ pg = st.navigation(
     {
         "Analytics": [dashboard_page, analytics_page],
         "Gestión de Relaciones": [citas_page, prospeccion_page],
-        "Gestión de Proyectos": [proyectos_page]
+        "Gestión de Proyectos/Cotizaciones": [proyectos_page]
     }
 )
 pg.run()
