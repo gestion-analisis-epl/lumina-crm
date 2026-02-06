@@ -3,34 +3,35 @@ showErrorDetails = "none"
 
 [server]
 enableStaticServing = true
+fileWatcherType = "none"
 
 [[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-Regular.ttf"
+url = "static/Google_Sans/GoogleSans-Regular.ttf"
 family = "Google Sans"
 weight = 100
 
 [[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-Regular.ttf"
+url = "static/Google_Sans/GoogleSans-Regular.ttf"
 family = "Google Sans"
 weight = 300
 
 [[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-Regular.ttf"
+url = "static/Google_Sans/GoogleSans-Regular.ttf"
 family = "Google Sans"
 weight = 400
 
 [[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-Medium.ttf"
+url = "static/Google_Sans/GoogleSans-Medium.ttf"
 family = "Google Sans"
 weight = 500
 
 [[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-SemiBold.ttf"
+url = "static/Google_Sans/GoogleSans-SemiBold.ttf"
 family = "Google Sans"
 weight = 700
 
 [[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-Bold.ttf"
+url = "static/Google_Sans/GoogleSans-Bold.ttf"
 family = "Google Sans"
 weight = 900
 

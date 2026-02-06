@@ -136,7 +136,15 @@ def edit_dialog(idx):
         with col1:
             asesor_edit = st.selectbox("Selecciona un asesor de ventas", ASESORES, 
                                        index=ASESORES.index(row.get('asesor', '')) if row.get('asesor', '') in ASESORES else None)
-            cotizacion_edit = st.text_input("Cotización", value=row.get('cotizacion', ''))
+            cotizacion_edit = st.text_input("No. de Cotización", value=row.get('cotizacion', ''))
+            # Fecha de cotización
+            fecha_cot_value = row.get('fecha_cotizacion', None)
+            if fecha_cot_value and isinstance(fecha_cot_value, str):
+                try:
+                    fecha_cot_value = datetime.strptime(fecha_cot_value, '%Y-%m-%d').date()
+                except:
+                    fecha_cot_value = None
+            fecha_cotizacion_edit = st.date_input("Fecha de Cotización", value=fecha_cot_value, key=f"fecha_edit_{idx}")
         
         with col2:
             proyecto_edit = st.text_input("Proyecto *", value=row.get('proyecto', ''))
@@ -174,6 +182,7 @@ def edit_dialog(idx):
                         'proyecto_id': row.get('proyecto_id', ''),
                         'asesor': asesor_edit,
                         'cotizacion': cotizacion_edit,
+                        'fecha_cotizacion': fecha_cotizacion_edit.isoformat() if fecha_cotizacion_edit else None,
                         'proyecto': proyecto_edit,
                         'cliente': cliente_edit,
                         'status': status_edit,
@@ -203,7 +212,8 @@ with st.container():
     
     with col1:
         asesor = st.selectbox("Selecciona un asesor de ventas", ASESORES, key="asesor_nuevo").title()
-        cotizacion = st.text_input("Cotización", key="cotizacion_nueva")
+        cotizacion = st.text_input("No. de Cotización", key="cotizacion_nueva")
+        fecha_cotizacion = st.date_input("Fecha de Cotización", value=None, key="fecha_cotizacion_nueva")
     
     with col2:
         proyecto = st.text_input("Proyecto/Cotización *", key="proyecto_nuevo")
@@ -232,6 +242,7 @@ with st.container():
                     'proyecto_id': nuevo_id,
                     'asesor': asesor,
                     'cotizacion': cotizacion,
+                    'fecha_cotizacion': fecha_cotizacion.isoformat() if fecha_cotizacion else None,
                     'proyecto': proyecto,
                     'cliente': cliente,
                     'status': status,
