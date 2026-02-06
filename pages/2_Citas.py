@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.opciones import ASESORES, GIROS_NEGOCIO
+from utils.opciones import ASESORES
 from utils.supabase_client import get_supabase_client
 import pandas as pd
 from datetime import datetime, date
@@ -134,7 +134,7 @@ def edit_dialog(idx):
         
         with col2:
             prospecto_edit = st.text_input("Prospecto *", value=row.get('prospecto', '')).title()
-            giro_edit = st.selectbox("Giro", GIROS_NEGOCIO, index=GIROS_NEGOCIO.index(row.get('giro', '').title()) if row.get('giro', '').title() in GIROS_NEGOCIO else 0).title()
+            giro_edit = st.text_input("Giro", value=row.get('giro', '')).title()
         
         with col3:
             accion_seguir_edit = st.text_area("Acción a Seguir", value=row.get('accion_seguir', '')).capitalize()
@@ -187,9 +187,7 @@ with st.container():
     
     with col2:
         prospecto = st.text_input("Nombre de tu prospecto *", key="prospecto_cita").title()
-        giro = st.selectbox("Selecciona un giro de negocio", GIROS_NEGOCIO, key="giro_cita").title()
-        if giro == "Otro":
-            giro = st.text_input("Especifica el giro de negocio", key="giro_otro_cita").title()
+        giro = st.text_input("Giro de negocio", key="giro_cita").title()
     
     with col3:
         accion_seguir = st.text_area("Acción a Seguir", key="accion_cita").capitalize()
