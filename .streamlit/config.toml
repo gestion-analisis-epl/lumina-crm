@@ -38,7 +38,7 @@ weight = 900
 base = "light"
 primaryColor = "#003057"
 backgroundColor = "#f5f5f5"
-secondaryBackgroundColor = "#ffffff"
+secondaryBackgroundColor = "#e9e8e8ff"
 
 font = "Google Sans, sans-serif"
 baseFontSize = 16
