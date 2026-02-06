@@ -231,7 +231,7 @@ with st.container():
     
     observaciones = st.text_area("Observaciones", key="observaciones_nueva")
     
-    if st.button(":material/save: Guardar Proyecto/Cotización", key="guardar_proyecto", type="primary", use_container_width=True):
+    if st.button(":material/save: Guardar Proyecto/Cotización", key="guardar_proyecto", type="primary", width='stretch'):
         if asesor and proyecto and cliente:
             # Validar que si es Perdido, tenga motivo
             if status == "Perdido" and not motivo_perdida:
@@ -297,8 +297,8 @@ if len(data) > 0:
     # Mostrar tabla con acciones
     if len(page_data) > 0:
         # Encabezados
-        header_cols = st.columns([1.5, 2, 1.5, 1.2, 1.5, 0.7, 0.7])
-        headers = ['Asesor', 'Proyecto/Cotización', 'Cliente', 'Status', 'Total', '', '']
+        header_cols = st.columns([1.5, 2, 1.5, 1.2, 1, 1.5, 0.7, 0.7])
+        headers = ['Asesor', 'Proyecto/Cotización', 'Cliente', 'Status', 'Fecha', 'Total', '', '']
         for idx, (col, header) in enumerate(zip(header_cols, headers)):
             with col:
                 if header:
@@ -307,7 +307,7 @@ if len(data) > 0:
         st.markdown("---")
         
         for idx, row in page_data.iterrows():
-            cols = st.columns([1.5, 2, 1.5, 1.2, 1.5, 0.7, 0.7])
+            cols = st.columns([1.5, 2, 1.5, 1.2, 1, 1.5, 0.7, 0.7])
             
             with cols[0]:
                 st.text(row.get('asesor', ''))
@@ -322,18 +322,20 @@ if len(data) > 0:
                     'Vendido': '#4ac783',
                     'Ganado': '#4ac783',
                     'Perdido': '#ff715a',
-                    'Proceso': '#fdc400'
+                    'En Proceso': '#fdc400'
                 }
                 bg_color = color_map.get(status, "#007fd6")
                 st.markdown(f'<div style="background-color: {bg_color}; color: white; padding: 4px 8px; border-radius: 4px; text-align: center; font-size: 12px;">{status}</div>', unsafe_allow_html=True)
             with cols[4]:
+                st.text(row.get('fecha_cotizacion', ''))
+            with cols[5]:
                 total_val = row.get('total', 0)
                 st.text(f"${total_val:,.2f}" if pd.notna(total_val) else "$0.00")
-            with cols[5]:
-                if st.button(":material/edit:", key=f"edit_proy_{idx}", help="Editar", use_container_width=True):
-                    edit_dialog(idx)
             with cols[6]:
-                if st.button(":material/delete:", key=f"delete_proy_{idx}", help="Eliminar", use_container_width=True):
+                if st.button(":material/edit:", key=f"edit_proy_{idx}", help="Editar", width='stretch'):
+                    edit_dialog(idx)
+            with cols[7]:
+                if st.button(":material/delete:", key=f"delete_proy_{idx}", help="Eliminar", width='stretch'):
                     confirm_delete(idx)
         
         # Controles de paginación

@@ -207,7 +207,7 @@ def mostrar_grafico_proyectos_estado(proyectos_filtrados):
         
         # Definir colores según el estado
         color_map = {
-            'Proceso': '#FFA500',  # Naranja
+            'En Proceso': '#FFA500',  # Naranja
             'Vendido': '#2ECC71',  # Verde
             'Ganado': '#2ECC71',   # Verde
             'Perdido': '#E74C3C'   # Rojo
@@ -227,7 +227,7 @@ def mostrar_grafico_proyectos_estado(proyectos_filtrados):
         
         fig.update_traces(textposition='inside', textinfo='percent+label')
         
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No hay proyectos para mostrar la distribución por estado")
 
@@ -344,11 +344,11 @@ def mostrar_actividad_reciente(citas_filtradas, prospeccion_filtrada, proyectos_
             if columnas_mostrar:
                 st.dataframe(
                     citas_filtradas[columnas_mostrar].head(5), 
-                    use_container_width=True,
+                    width='stretch',
                     hide_index=True
                 )
             else:
-                st.dataframe(citas_filtradas.head(5), use_container_width=True, hide_index=True)
+                st.dataframe(citas_filtradas.head(5), width='stretch', hide_index=True)
         else:
             st.info("No hay citas registradas")
     
@@ -363,11 +363,11 @@ def mostrar_actividad_reciente(citas_filtradas, prospeccion_filtrada, proyectos_
             if columnas_mostrar:
                 st.dataframe(
                     prospeccion_filtrada[columnas_mostrar].head(5), 
-                    use_container_width=True,
+                    width='stretch',
                     hide_index=True
                 )
             else:
-                st.dataframe(prospeccion_filtrada.head(5), use_container_width=True, hide_index=True)
+                st.dataframe(prospeccion_filtrada.head(5), width='stretch', hide_index=True)
         else:
             st.info("No hay prospectos registrados")
     
@@ -382,11 +382,11 @@ def mostrar_actividad_reciente(citas_filtradas, prospeccion_filtrada, proyectos_
             if columnas_mostrar:
                 st.dataframe(
                     proyectos_filtrados[columnas_mostrar].head(5), 
-                    use_container_width=True,
+                    width='stretch',
                     hide_index=True
                 )
             else:
-                st.dataframe(proyectos_filtrados.head(5), use_container_width=True, hide_index=True)
+                st.dataframe(proyectos_filtrados.head(5), width='stretch', hide_index=True)
         else:
             st.info("No hay proyectos registrados")
 

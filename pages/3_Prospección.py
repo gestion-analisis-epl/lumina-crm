@@ -188,7 +188,7 @@ with st.container():
     with col3:
         accion = st.text_area("Acción *", key="accion_prospecto").capitalize()
     
-    if st.button(":material/save: Guardar Prospecto", key="guardar_prospecto", type="primary", use_container_width=True):
+    if st.button(":material/save: Guardar Prospecto", key="guardar_prospecto", type="primary", width='stretch'):
         if asesor and prospecto and accion:
             nuevo_id = generar_id()
             nuevo_prospecto = {
@@ -270,10 +270,10 @@ if len(data) > 0:
                 accion = str(row.get('accion', ''))
                 st.text(accion[:35] + '...' if len(accion) > 35 else accion)
             with cols[5]:
-                if st.button(":material/edit:", key=f"edit_prosp_{idx}", help="Editar", use_container_width=True):
+                if st.button(":material/edit:", key=f"edit_prosp_{idx}", help="Editar", width='stretch'):
                     edit_dialog(idx)
             with cols[6]:
-                if st.button(":material/delete:", key=f"delete_prosp_{idx}", help="Eliminar", use_container_width=True):
+                if st.button(":material/delete:", key=f"delete_prosp_{idx}", help="Eliminar", width='stretch'):
                     confirm_delete(idx)
         
         # Controles de paginación

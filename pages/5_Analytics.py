@@ -296,11 +296,11 @@ try:
                 if columnas_mostrar:
                     st.dataframe(
                         proyectos_filtrados[columnas_mostrar].head(5), 
-                        use_container_width=True,
+                        width='stretch',
                         hide_index=True
                     )
                 else:
-                    st.dataframe(proyectos_filtrados.head(5), use_container_width=True, hide_index=True,
+                    st.dataframe(proyectos_filtrados.head(5), width='stretch', hide_index=True,
                                  column_config={
                                      "id": None,
                                      "proyecto_id": "ID Proyecto",

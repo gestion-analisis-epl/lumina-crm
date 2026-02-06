@@ -139,12 +139,28 @@ try:
         df = proyectos_filtrados[columnas_mostrar]
         if columnas_mostrar:
             st.dataframe(
-                df.head(5).style.format({"total": "${:,.2f}"}), 
-                use_container_width=True,
-                hide_index=True
+                df.head(5), 
+                width='stretch',
+                hide_index=True,
+                column_config={
+                    "fecha": st.column_config.DateColumn("Fecha", format="DD/MM/YYYY"),
+                    "asesor": "Asesor",
+                    "proyecto/cotización": "Proyecto/Cotización",
+                    "cliente": "Cliente",
+                    "total": st.column_config.NumberColumn("Total", format="$ %.2f"),
+                    "status": "Status"
+                }
             )
         else:
-            st.dataframe(proyectos_filtrados.head(5), use_container_width=True, hide_index=True)
+            st.dataframe(proyectos_filtrados.head(5), width='stretch', hide_index=True,
+            column_config={
+                "fecha": st.column_config.DateColumn("Fecha", format="DD/MM/YYYY"),
+                "asesor": "Asesor",
+                "proyecto/cotización": "Proyecto/Cotización",
+                "cliente": "Cliente",
+                "total": st.column_config.NumberColumn("Total", format="$ %.2f"),
+                "status": "Status"
+            })
     else:
         st.info("No hay proyectos para mostrar")
 
