@@ -19,7 +19,7 @@ st.markdown("""
     .edit-btn { color: #2196F3; cursor: pointer; }
     .delete-btn { color: #f44336; cursor: pointer; }
     .search-box { margin-bottom: 20px; }
-    table { border-collapse: collapse; width: 100%; }
+    table { border-collapse: collapse; width: 100%; }g
     th { background-color: #f5f5f5; padding: 12px; text-align: left; }
     td { padding: 10px; border-bottom: 1px solid #ddd; }
     tr:hover { background-color: #f9f9f9; }
