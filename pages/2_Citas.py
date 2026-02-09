@@ -6,6 +6,7 @@ from datetime import datetime, date
 import math
 import random
 import time
+from io import BytesIO
 
 st.set_page_config(page_title="Citas", page_icon=":material/calendar_today:", layout="wide")
 
@@ -137,7 +138,7 @@ def edit_dialog(idx):
             giro_edit = st.text_input("Giro", value=row.get('giro', '')).title()
         
         with col3:
-            accion_seguir_edit = st.text_area("Acción a Seguir", value=row.get('accion_seguir', '')).capitalize()
+            accion_seguir_edit = st.text_area("Acción a Seguir", value=row.get('accion_seguir', '')).title()
             try:
                 ultimo_contacto_edit = st.date_input("Último Contacto", 
                                                     value=pd.to_datetime(row.get('ultimo_contacto', date.today())))
@@ -182,15 +183,15 @@ with st.container():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        asesor = st.selectbox("Selecciona un asesor de ventas", ASESORES, key="asesor_cita").title()
+        asesor = st.selectbox("Selecciona un asesor de ventas", ASESORES, key="asesor_cita").upper()
         fecha_cita = st.date_input("Fecha *", value=date.today(), key="fecha_cita")
     
     with col2:
-        prospecto = st.text_input("Nombre de tu prospecto *", key="prospecto_cita").title()
-        giro = st.text_input("Giro de negocio", key="giro_cita").title()
+        prospecto = st.text_input("Nombre de tu prospecto *", key="prospecto_cita").upper()
+        giro = st.text_input("Giro de negocio", key="giro_cita").upper()
     
     with col3:
-        accion_seguir = st.text_area("Acción a Seguir", key="accion_cita").capitalize()
+        accion_seguir = st.text_area("Acción a Seguir", key="accion_cita").upper()
         ultimo_contacto = st.date_input("Último Contacto", value=date.today(), key="ultimo_contacto_cita")
     
     if st.button(":material/save: Guardar Cita", key="guardar_cita", type="primary", use_container_width=True):
@@ -198,11 +199,11 @@ with st.container():
             nuevo_id = generar_id()
             nueva_cita = {
                 'cita_id': nuevo_id,
-                'asesor': asesor,
+                'asesor': asesor.upper(),
                 'fecha': fecha_cita.strftime('%Y-%m-%d'),
-                'prospecto': prospecto,
-                'giro': giro,
-                'accion_seguir': accion_seguir,
+                'prospecto': prospecto.upper(),
+                'giro': giro.upper(),
+                'accion_seguir': accion_seguir.upper(),
                 'ultimo_contacto': ultimo_contacto.strftime('%Y-%m-%d')
             }
             if save_data(nueva_cita):
@@ -220,8 +221,8 @@ st.markdown("#### :material/list: Lista de Citas")
 data = load_data()
 
 if len(data) > 0:
-    # Búsqueda
-    col1, col2 = st.columns([3, 1])
+    # Búsqueda y descarga
+    col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
         st.markdown("")
     with col2:
@@ -229,6 +230,9 @@ if len(data) > 0:
                                      placeholder="Buscar por nombre, asesor, fecha...",
                                      key="search_input")
         st.session_state.search_query = search_query
+    with col3:
+        st.markdown("")
+        st.markdown("")
     
     # Filtrar datos según búsqueda
     if search_query:
@@ -236,6 +240,34 @@ if len(data) > 0:
         filtered_data = data[mask]
     else:
         filtered_data = data
+    
+    # Función para convertir DataFrame a Excel
+    def to_excel(df):
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # Seleccionar solo las columnas relevantes para exportar
+            export_df = df[['cita_id', 'fecha', 'asesor', 'prospecto', 'giro', 'accion_seguir', 'ultimo_contacto']].copy()
+            export_df.columns = ['ID', 'Fecha', 'Asesor', 'Prospecto', 'Giro', 'Acción a Seguir', 'Último Contacto']
+            # Convertir columnas de texto a mayúsculas
+            text_columns = ['ID', 'Asesor', 'Prospecto', 'Giro', 'Acción a Seguir']
+            for col in text_columns:
+                export_df[col] = export_df[col].astype(str).str.upper()
+            export_df.to_excel(writer, index=False, sheet_name='Citas')
+        return output.getvalue()
+    
+    # Botón de descarga
+    col1, col2 = st.columns([5, 1])
+    with col2:
+        excel_data = to_excel(filtered_data)
+        st.download_button(
+            label=":material/download: Descargar Excel",
+            data=excel_data,
+            file_name=f"citas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
+    
+    st.markdown("")
     
     # Paginación
     items_per_page = 10
@@ -267,14 +299,14 @@ if len(data) > 0:
             with cols[0]:
                 st.text(row.get('fecha', ''))
             with cols[1]:
-                st.text(row.get('asesor', ''))
+                st.text(str(row.get('asesor', '')).upper())
             with cols[2]:
-                giro = str(row.get('giro', ''))
+                giro = str(row.get('giro', '')).upper()
                 st.text(giro[:15] + '...' if len(giro) > 15 else giro)
             with cols[3]:
-                st.text(row.get('prospecto', ''))
+                st.text(str(row.get('prospecto', '')).upper())
             with cols[4]:
-                accion = str(row.get('accion_seguir', ''))
+                accion = str(row.get('accion_seguir', '')).upper()
                 st.text(accion[:30] + '...' if len(accion) > 30 else accion)
             with cols[5]:
                 if st.button(":material/edit:", key=f"edit_{idx}", help="Editar", use_container_width=True):

@@ -5,6 +5,7 @@ from datetime import datetime, date
 import math
 import random
 import time
+from io import BytesIO
 
 from utils.opciones import ASESORES
 
@@ -282,6 +283,34 @@ if len(data) > 0:
     else:
         filtered_data = data
     
+    # Función para convertir DataFrame a Excel
+    def to_excel(df):
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # Seleccionar solo las columnas relevantes para exportar
+            export_df = df[['proyecto_id', 'asesor', 'cotizacion', 'fecha_cotizacion', 'proyecto', 'cliente', 'status', 'total', 'motivo_perdida', 'observaciones']].copy()
+            export_df.columns = ['ID', 'Asesor', 'No. Cotización', 'Fecha Cotización', 'Proyecto', 'Cliente', 'Status', 'Total', 'Motivo Pérdida', 'Observaciones']
+            # Convertir columnas de texto a mayúsculas
+            text_columns = ['ID', 'Asesor', 'No. Cotización', 'Proyecto', 'Cliente', 'Status', 'Motivo Pérdida', 'Observaciones']
+            for col in text_columns:
+                export_df[col] = export_df[col].astype(str).str.upper()
+            export_df.to_excel(writer, index=False, sheet_name='Proyectos')
+        return output.getvalue()
+    
+    # Botón de descarga
+    col1, col2 = st.columns([5, 1])
+    with col2:
+        excel_data = to_excel(filtered_data)
+        st.download_button(
+            label=":material/download: Descargar Excel",
+            data=excel_data,
+            file_name=f"proyectos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
+    
+    st.markdown("")
+    
     # Paginación
     items_per_page = 10
     total_items = len(filtered_data)
@@ -310,12 +339,12 @@ if len(data) > 0:
             cols = st.columns([1.5, 2, 1.5, 1.2, 1, 1.5, 0.7, 0.7])
             
             with cols[0]:
-                st.text(row.get('asesor', ''))
+                st.text(str(row.get('asesor', '')).upper())
             with cols[1]:
-                proyecto = str(row.get('proyecto', ''))
+                proyecto = str(row.get('proyecto', '')).upper()
                 st.text(proyecto[:25] + '...' if len(proyecto) > 25 else proyecto)
             with cols[2]:
-                st.text(row.get('cliente', ''))
+                st.text(str(row.get('cliente', '')).upper())
             with cols[3]:
                 status = row.get('status', '').title()
                 color_map = {

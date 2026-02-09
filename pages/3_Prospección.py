@@ -5,6 +5,7 @@ from datetime import datetime, date
 import math
 import random
 import time
+from io import BytesIO
 
 from utils.opciones import ASESORES
 
@@ -231,6 +232,34 @@ if len(data) > 0:
     else:
         filtered_data = data
     
+    # Función para convertir DataFrame a Excel
+    def to_excel(df):
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # Seleccionar solo las columnas relevantes para exportar
+            export_df = df[['prospecto_id', 'fecha', 'asesor', 'prospecto', 'tipo', 'accion']].copy()
+            export_df.columns = ['ID', 'Fecha', 'Asesor', 'Prospecto', 'Tipo', 'Acción']
+            # Convertir columnas de texto a mayúsculas
+            text_columns = ['ID', 'Asesor', 'Prospecto', 'Tipo', 'Acción']
+            for col in text_columns:
+                export_df[col] = export_df[col].astype(str).str.upper()
+            export_df.to_excel(writer, index=False, sheet_name='Prospección')
+        return output.getvalue()
+    
+    # Botón de descarga
+    col1, col2 = st.columns([5, 1])
+    with col2:
+        excel_data = to_excel(filtered_data)
+        st.download_button(
+            label=":material/download: Descargar Excel",
+            data=excel_data,
+            file_name=f"prospeccion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
+    
+    st.markdown("")
+    
     # Paginación
     items_per_page = 10
     total_items = len(filtered_data)
@@ -261,13 +290,13 @@ if len(data) > 0:
             with cols[0]:
                 st.text(row.get('fecha', ''))
             with cols[1]:
-                st.text(row.get('asesor', ''))
+                st.text(str(row.get('asesor', '')).upper())
             with cols[2]:
-                st.text(row.get('prospecto', ''))
+                st.text(str(row.get('prospecto', '')).upper())
             with cols[3]:
-                st.text(row.get('tipo', ''))
+                st.text(str(row.get('tipo', '')).upper())
             with cols[4]:
-                accion = str(row.get('accion', ''))
+                accion = str(row.get('accion', '')).upper()
                 st.text(accion[:35] + '...' if len(accion) > 35 else accion)
             with cols[5]:
                 if st.button(":material/edit:", key=f"edit_prosp_{idx}", help="Editar", width='stretch'):
