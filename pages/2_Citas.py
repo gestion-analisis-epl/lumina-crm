@@ -226,8 +226,8 @@ st.markdown("#### :material/list: Lista de Citas")
 data = load_data()
 
 if len(data) > 0:
-    # Búsqueda y descarga
-    col1, col2, col3 = st.columns([2, 1, 1])
+    # Búsqueda
+    col1, col2 = st.columns([5, 2])
     with col1:
         st.markdown("")
     with col2:
@@ -235,9 +235,6 @@ if len(data) > 0:
                                      placeholder="Buscar por nombre, asesor, fecha...",
                                      key="search_input")
         st.session_state.search_query = search_query
-    with col3:
-        st.markdown("")
-        st.markdown("")
     
     # Filtrar datos según búsqueda
     if search_query:
