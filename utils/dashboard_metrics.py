@@ -132,12 +132,11 @@ class MetricsCalculator:
             dict: Diccionario con métricas por estado
         """
         proyectos_proceso = proyectos_filtrados[
-            proyectos_filtrados['status'] == 'Proceso'
+            proyectos_filtrados['status'] == 'En Proceso'
         ]['total'].sum() if 'status' in proyectos_filtrados.columns else 0
         
         proyectos_ganados = proyectos_filtrados[
-            (proyectos_filtrados['status'] == 'Vendido') |
-            (proyectos_filtrados['status'] == 'Ganado')
+            proyectos_filtrados['status'] == 'Ganado'
         ]['total'].sum() if 'status' in proyectos_filtrados.columns else 0
         
         proyectos_perdidos = proyectos_filtrados[
@@ -309,10 +308,15 @@ class MetricsCalculator:
         proyectos_con_fecha = proyectos_filtrados.copy()
         
         # Asegurar que tenemos la columna de fecha
-        if 'fecha_dt' not in proyectos_con_fecha.columns and 'fecha' in proyectos_con_fecha.columns:
-            proyectos_con_fecha['fecha_dt'] = pd.to_datetime(
-                proyectos_con_fecha['fecha'], dayfirst=True, errors='coerce'
-            )
+        if 'fecha_dt' not in proyectos_con_fecha.columns:
+            if 'fecha' in proyectos_con_fecha.columns:
+                proyectos_con_fecha['fecha_dt'] = pd.to_datetime(
+                    proyectos_con_fecha['fecha'], dayfirst=True, errors='coerce'
+                )
+            elif 'fecha_cotizacion' in proyectos_con_fecha.columns:
+                proyectos_con_fecha['fecha_dt'] = pd.to_datetime(
+                    proyectos_con_fecha['fecha_cotizacion'], errors='coerce'
+                )
         
         # Filtrar ventas del trimestre actual (vendidos o ganados)
         if 'fecha_dt' in proyectos_con_fecha.columns:

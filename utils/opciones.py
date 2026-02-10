@@ -1,8 +1,8 @@
 ASESORES = [
-    "Hugo Enrique Pérez Ramírez",
-    "José Alvaro Martínez Espejel",
-    "Carlos Ortiz",
-    "Mauricio Gutiérrez Pérez Palma",
+    "HUGO ENRIQUE PÉREZ RAMÍREZ",
+    "JOSÉ ALVARO MARTÍNEZ ESPEJEL",
+    "CARLOS ORTIZ",
+    "MAURICIO GUTIÉRREZ PÉREZ PALMA",
 ]
 
 GIROS_NEGOCIO = [
