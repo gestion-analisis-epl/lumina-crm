@@ -41,6 +41,11 @@ if 'show_edit_dialog_prospeccion' not in st.session_state:
     st.session_state.show_edit_dialog_prospeccion = False
 if 'edit_index_prospeccion' not in st.session_state:
     st.session_state.edit_index_prospeccion = None
+# Nuevos estados para ordenamiento
+if 'sort_column_prospeccion' not in st.session_state:
+    st.session_state.sort_column_prospeccion = 'fecha'
+if 'sort_ascending_prospeccion' not in st.session_state:
+    st.session_state.sort_ascending_prospeccion = False
 
 # Cargar datos
 @st.cache_data(ttl=5)
@@ -99,7 +104,7 @@ def confirm_delete(idx):
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button(":material/delete: Sí, Eliminar", width='stretch', type="primary"):
+        if st.button(":material/delete: Sí, Eliminar", use_container_width=True, type="primary"):
             # Obtener el ID de la base de datos
             row_id = row.get('id', '')
             if row_id and delete_data(row_id):
@@ -107,7 +112,7 @@ def confirm_delete(idx):
                 time.sleep(1)
                 st.rerun()
     with col2:
-        if st.button(":material/cancel: Cancelar", width='stretch'):
+        if st.button(":material/cancel: Cancelar", use_container_width=True):
             st.rerun()
 
 @st.dialog(":material/edit: Editar Prospecto")
@@ -145,9 +150,9 @@ def edit_dialog(idx):
         col_btn1, col_btn2 = st.columns(2)
         
         with col_btn1:
-            guardar = st.form_submit_button(":material/save: Guardar Cambios", width='stretch')
+            guardar = st.form_submit_button(":material/save: Guardar Cambios", use_container_width=True)
         with col_btn2:
-            cancelar = st.form_submit_button(":material/cancel: Cancelar", width='stretch')
+            cancelar = st.form_submit_button(":material/cancel: Cancelar", use_container_width=True)
         
         if guardar:
             if asesor_edit and prospecto_edit and accion_edit:
@@ -189,7 +194,7 @@ with st.container():
     with col3:
         accion = st.text_area("Acción *", key="accion_prospecto").capitalize()
     
-    if st.button(":material/save: Guardar Prospecto", key="guardar_prospecto", type="primary", width='stretch'):
+    if st.button(":material/save: Guardar Prospecto", key="guardar_prospecto", type="primary", use_container_width=True):
         if asesor and prospecto and accion:
             nuevo_id = generar_id()
             nuevo_prospecto = {
@@ -231,6 +236,18 @@ if len(data) > 0:
         filtered_data = data[mask]
     else:
         filtered_data = data
+    
+    # Aplicar ordenamiento
+    if st.session_state.sort_column_prospeccion in filtered_data.columns:
+        # Convertir fecha a datetime si es la columna de ordenamiento
+        if st.session_state.sort_column_prospeccion == 'fecha':
+            filtered_data = filtered_data.copy()
+            filtered_data['fecha'] = pd.to_datetime(filtered_data['fecha'])
+        
+        filtered_data = filtered_data.sort_values(
+            by=st.session_state.sort_column_prospeccion,
+            ascending=st.session_state.sort_ascending_prospeccion
+        )
     
     # Función para convertir DataFrame a Excel
     def to_excel(df):
@@ -274,13 +291,39 @@ if len(data) > 0:
     
     # Mostrar tabla con acciones
     if len(page_data) > 0:
-        # Encabezados
+        # Función para cambiar el ordenamiento
+        def toggle_sort(column):
+            if st.session_state.sort_column_prospeccion == column:
+                st.session_state.sort_ascending_prospeccion = not st.session_state.sort_ascending_prospeccion
+            else:
+                st.session_state.sort_column_prospeccion = column
+                st.session_state.sort_ascending_prospeccion = True
+            st.session_state.page_prospeccion = 0  # Resetear a la primera página
+        
+        # Encabezados con botones de ordenamiento
         header_cols = st.columns([1, 1.5, 2, 1.5, 2.5, 0.7, 0.7])
-        headers = ['Fecha', 'Asesor', 'Prospecto', 'Tipo', 'Acción', '', '']
-        for idx, (col, header) in enumerate(zip(header_cols, headers)):
+        headers = [
+            ('fecha', 'Fecha'),
+            ('asesor', 'Asesor'),
+            ('prospecto', 'Prospecto'),
+            ('tipo', 'Tipo'),
+            ('accion', 'Acción'),
+            ('', ''),
+            ('', '')
+        ]
+        
+        for idx, (col, (col_name, header)) in enumerate(zip(header_cols, headers)):
             with col:
-                if header:
-                    st.markdown(f"**{header}**")
+                if header and col_name:
+                    # Determinar el ícono de ordenamiento
+                    if st.session_state.sort_column_prospeccion == col_name:
+                        icon = ":material/arrow_upward:" if st.session_state.sort_ascending_prospeccion else ":material/arrow_downward:"
+                    else:
+                        icon = ":material/unfold_more:"
+                    
+                    if st.button(f"{header} {icon}", key=f"sort_{col_name}", use_container_width=True):
+                        toggle_sort(col_name)
+                        st.rerun()
         
         st.markdown("---")
         
@@ -288,9 +331,21 @@ if len(data) > 0:
             cols = st.columns([1, 1.5, 2, 1.5, 2.5, 0.7, 0.7])
             
             with cols[0]:
-                st.text(row.get('fecha', ''))
+                fecha_display = row.get('fecha', '')
+                if isinstance(fecha_display, pd.Timestamp):
+                    fecha_display = fecha_display.strftime('%Y-%m-%d')
+                st.text(fecha_display)
             with cols[1]:
-                st.text(str(row.get('asesor', '')).upper())
+                if row.get('asesor', '') == "CARLOS ORTIZ":
+                    st.text("CARLOS ORTIZ")
+                elif row.get('asesor', '') == "HUGO ENRIQUE PÉREZ RAMÍREZ":
+                    st.text("HUGO PÉREZ")
+                elif row.get('asesor', '') == "JOSÉ ALVARO MARTÍNEZ ESPEJEL":
+                    st.text("ALVARO MARTÍNEZ")
+                elif row.get('asesor', '') == "MAURICIO GUTIÉRREZ PÉREZ PALMA":
+                    st.text("MAURICIO GUTIÉRREZ")
+                else:
+                    st.text(str(row.get('asesor', '')).upper())
             with cols[2]:
                 st.text(str(row.get('prospecto', '')).upper())
             with cols[3]:
@@ -299,10 +354,10 @@ if len(data) > 0:
                 accion = str(row.get('accion', '')).upper()
                 st.text(accion[:35] + '...' if len(accion) > 35 else accion)
             with cols[5]:
-                if st.button(":material/edit:", key=f"edit_prosp_{idx}", help="Editar", width='stretch'):
+                if st.button(":material/edit:", key=f"edit_prosp_{idx}", help="Editar", use_container_width=True):
                     edit_dialog(idx)
             with cols[6]:
-                if st.button(":material/delete:", key=f"delete_prosp_{idx}", help="Eliminar", width='stretch'):
+                if st.button(":material/delete:", key=f"delete_prosp_{idx}", help="Eliminar", use_container_width=True):
                     confirm_delete(idx)
         
         # Controles de paginación

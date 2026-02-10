@@ -43,6 +43,11 @@ if 'edit_index_proyectos' not in st.session_state:
     st.session_state.edit_index_proyectos = None
 if 'status_proyectos' not in st.session_state:
     st.session_state.status_proyectos = "En Proceso"
+# Nuevos estados para ordenamiento
+if 'sort_column_proyectos' not in st.session_state:
+    st.session_state.sort_column_proyectos = 'fecha_cotizacion'
+if 'sort_ascending_proyectos' not in st.session_state:
+    st.session_state.sort_ascending_proyectos = False
 
 # Cargar datos
 @st.cache_data(ttl=5)
@@ -101,7 +106,7 @@ def confirm_delete(idx):
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button(":material/delete: Sí, Eliminar", width='stretch', type="primary"):
+        if st.button(":material/delete: Sí, Eliminar", use_container_width=True, type="primary"):
             # Obtener el ID de la base de datos
             row_id = row.get('id', '')
             if row_id and delete_data(row_id):
@@ -109,7 +114,7 @@ def confirm_delete(idx):
                 time.sleep(1)
                 st.rerun()
     with col2:
-        if st.button(":material/cancel: Cancelar", width='stretch'):
+        if st.button(":material/cancel: Cancelar", use_container_width=True):
             st.rerun()
 
 @st.dialog(":material/edit: Editar Proyecto")
@@ -168,9 +173,9 @@ def edit_dialog(idx):
         col_btn1, col_btn2 = st.columns(2)
         
         with col_btn1:
-            guardar = st.form_submit_button(":material/save: Guardar Cambios", width='stretch')
+            guardar = st.form_submit_button(":material/save: Guardar Cambios", use_container_width=True)
         with col_btn2:
-            cancelar = st.form_submit_button(":material/cancel: Cancelar", width='stretch')
+            cancelar = st.form_submit_button(":material/cancel: Cancelar", use_container_width=True)
         
         if guardar:
             if asesor_edit and proyecto_edit and cliente_edit:
@@ -232,7 +237,7 @@ with st.container():
     
     observaciones = st.text_area("Observaciones", key="observaciones_nueva")
     
-    if st.button(":material/save: Guardar Proyecto/Cotización", key="guardar_proyecto", type="primary", width='stretch'):
+    if st.button(":material/save: Guardar Proyecto/Cotización", key="guardar_proyecto", type="primary", use_container_width=True):
         if asesor and proyecto and cliente:
             # Validar que si es Perdido, tenga motivo
             if status == "Perdido" and not motivo_perdida:
@@ -283,6 +288,18 @@ if len(data) > 0:
     else:
         filtered_data = data
     
+    # Aplicar ordenamiento
+    if st.session_state.sort_column_proyectos in filtered_data.columns:
+        # Convertir fecha a datetime si es la columna de ordenamiento
+        if st.session_state.sort_column_proyectos == 'fecha_cotizacion':
+            filtered_data = filtered_data.copy()
+            filtered_data['fecha_cotizacion'] = pd.to_datetime(filtered_data['fecha_cotizacion'])
+        
+        filtered_data = filtered_data.sort_values(
+            by=st.session_state.sort_column_proyectos,
+            ascending=st.session_state.sort_ascending_proyectos
+        )
+    
     # Función para convertir DataFrame a Excel
     def to_excel(df):
         output = BytesIO()
@@ -325,27 +342,66 @@ if len(data) > 0:
     
     # Mostrar tabla con acciones
     if len(page_data) > 0:
-        # Encabezados
-        header_cols = st.columns([1.5, 2, 1.5, 1.2, 1, 1.5, 0.7, 0.7])
-        headers = ['Asesor', 'Proyecto/Cotización', 'Cliente', 'Status', 'Fecha', 'Total', '', '']
-        for idx, (col, header) in enumerate(zip(header_cols, headers)):
+        # Función para cambiar el ordenamiento
+        def toggle_sort(column):
+            if st.session_state.sort_column_proyectos == column:
+                st.session_state.sort_ascending_proyectos = not st.session_state.sort_ascending_proyectos
+            else:
+                st.session_state.sort_column_proyectos = column
+                st.session_state.sort_ascending_proyectos = True
+            st.session_state.page_proyectos = 0  # Resetear a la primera página
+        
+        # Encabezados con botones de ordenamiento
+        header_cols = st.columns([1, 2, 0.8, 1.5, 1.2, 1, 1.5, 0.7, 0.7])
+        headers = [
+            ('asesor', 'Asesor'),
+            ('proyecto', 'Proyecto/Cotización'),
+            ('cotizacion', 'Cot.'),
+            ('cliente', 'Cliente'),
+            ('status', 'Status'),
+            ('fecha_cotizacion', 'Fecha'),
+            ('total', 'Total'),
+            ('', ''),
+            ('', '')
+        ]
+        
+        for idx, (col, (col_name, header)) in enumerate(zip(header_cols, headers)):
             with col:
-                if header:
-                    st.markdown(f"**{header}**")
+                if header and col_name:
+                    # Determinar el ícono de ordenamiento
+                    if st.session_state.sort_column_proyectos == col_name:
+                        icon = ":material/arrow_upward:" if st.session_state.sort_ascending_proyectos else ":material/arrow_downward:"
+                    else:
+                        icon = ":material/unfold_more:"
+                    
+                    if st.button(f"{header} {icon}", key=f"sort_{col_name}", use_container_width=True):
+                        toggle_sort(col_name)
+                        st.rerun()
         
         st.markdown("---")
         
         for idx, row in page_data.iterrows():
-            cols = st.columns([1.5, 2, 1.5, 1.2, 1, 1.5, 0.7, 0.7])
+            cols = st.columns([1, 2, 0.8, 1.5, 1.2, 1, 1.5, 0.7, 0.7])
             
             with cols[0]:
-                st.text(str(row.get('asesor', '')).upper())
+                if row.get('asesor', '') == "CARLOS ORTIZ":
+                    st.text("CARLOS ORTIZ")
+                elif row.get('asesor', '') == "HUGO ENRIQUE PÉREZ RAMÍREZ":
+                    st.text("HUGO PÉREZ")
+                elif row.get('asesor', '') == "JOSÉ ALVARO MARTÍNEZ ESPEJEL":
+                    st.text("ALVARO MARTÍNEZ")
+                elif row.get('asesor', '') == "MAURICIO GUTIÉRREZ PÉREZ PALMA":
+                    st.text("MAURICIO GUTIÉRREZ")
+                else:
+                    st.text(str(row.get('asesor', '')).upper())
             with cols[1]:
                 proyecto = str(row.get('proyecto', '')).upper()
                 st.text(proyecto[:25] + '...' if len(proyecto) > 25 else proyecto)
             with cols[2]:
-                st.text(str(row.get('cliente', '')).upper())
+                st.text(row.get('cotizacion', ''))
             with cols[3]:
+                st.text(str(row.get('cliente', '')).upper())
+            with cols[4]:
                 status = row.get('status', '').title()
                 color_map = {
                     'Vendido': '#4ac783',
@@ -355,16 +411,19 @@ if len(data) > 0:
                 }
                 bg_color = color_map.get(status, "#007fd6")
                 st.markdown(f'<div style="background-color: {bg_color}; color: white; padding: 4px 8px; border-radius: 4px; text-align: center; font-size: 12px;">{status}</div>', unsafe_allow_html=True)
-            with cols[4]:
-                st.text(row.get('fecha_cotizacion', ''))
             with cols[5]:
+                fecha_display = row.get('fecha_cotizacion', '')
+                if isinstance(fecha_display, pd.Timestamp):
+                    fecha_display = fecha_display.strftime('%Y-%m-%d')
+                st.text(fecha_display)
+            with cols[6]:
                 total_val = row.get('total', 0)
                 st.text(f"${total_val:,.2f}" if pd.notna(total_val) else "$0.00")
-            with cols[6]:
-                if st.button(":material/edit:", key=f"edit_proy_{idx}", help="Editar", width='stretch'):
-                    edit_dialog(idx)
             with cols[7]:
-                if st.button(":material/delete:", key=f"delete_proy_{idx}", help="Eliminar", width='stretch'):
+                if st.button(":material/edit:", key=f"edit_proy_{idx}", help="Editar", use_container_width=True):
+                    edit_dialog(idx)
+            with cols[8]:
+                if st.button(":material/delete:", key=f"delete_proy_{idx}", help="Eliminar", use_container_width=True):
                     confirm_delete(idx)
         
         # Controles de paginación

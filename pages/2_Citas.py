@@ -41,6 +41,11 @@ if 'show_edit_dialog' not in st.session_state:
     st.session_state.show_edit_dialog = False
 if 'edit_index' not in st.session_state:
     st.session_state.edit_index = None
+# Nuevos estados para ordenamiento
+if 'sort_column_citas' not in st.session_state:
+    st.session_state.sort_column_citas = 'fecha'
+if 'sort_ascending_citas' not in st.session_state:
+    st.session_state.sort_ascending_citas = False
 
 # Cargar datos
 @st.cache_data(ttl=5)
@@ -99,7 +104,7 @@ def confirm_delete(idx):
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button(":material/delete: Sí, Eliminar", width='stretch', type="primary"):
+        if st.button(":material/delete: Sí, Eliminar", use_container_width=True, type="primary"):
             # Obtener el ID de la base de datos (no el índice del DataFrame)
             row_id = row.get('id', '')
             if row_id and delete_data(row_id):
@@ -107,7 +112,7 @@ def confirm_delete(idx):
                 time.sleep(1)
                 st.rerun()
     with col2:
-        if st.button(":material/cancel: Cancelar", width='stretch'):
+        if st.button(":material/cancel: Cancelar", use_container_width=True):
             st.rerun()
 
 @st.dialog(":material/edit: Editar Cita")
@@ -148,9 +153,9 @@ def edit_dialog(idx):
         col_btn1, col_btn2 = st.columns(2)
         
         with col_btn1:
-            guardar = st.form_submit_button(":material/save: Guardar Cambios", width='stretch')
+            guardar = st.form_submit_button(":material/save: Guardar Cambios", use_container_width=True)
         with col_btn2:
-            cancelar = st.form_submit_button(":material/cancel: Cancelar", width='stretch')
+            cancelar = st.form_submit_button(":material/cancel: Cancelar", use_container_width=True)
         
         if guardar:
             if asesor_edit and prospecto_edit:
@@ -241,6 +246,18 @@ if len(data) > 0:
     else:
         filtered_data = data
     
+    # Aplicar ordenamiento
+    if st.session_state.sort_column_citas in filtered_data.columns:
+        # Convertir fecha a datetime si es la columna de ordenamiento
+        if st.session_state.sort_column_citas == 'fecha':
+            filtered_data = filtered_data.copy()
+            filtered_data['fecha'] = pd.to_datetime(filtered_data['fecha'])
+        
+        filtered_data = filtered_data.sort_values(
+            by=st.session_state.sort_column_citas,
+            ascending=st.session_state.sort_ascending_citas
+        )
+    
     # Función para convertir DataFrame a Excel
     def to_excel(df):
         output = BytesIO()
@@ -283,13 +300,39 @@ if len(data) > 0:
     
     # Mostrar tabla con acciones
     if len(page_data) > 0:
-        # Encabezados
+        # Función para cambiar el ordenamiento
+        def toggle_sort(column):
+            if st.session_state.sort_column_citas == column:
+                st.session_state.sort_ascending_citas = not st.session_state.sort_ascending_citas
+            else:
+                st.session_state.sort_column_citas = column
+                st.session_state.sort_ascending_citas = True
+            st.session_state.page = 0  # Resetear a la primera página
+        
+        # Encabezados con botones de ordenamiento
         header_cols = st.columns([1, 1.5, 1, 2, 2, 0.7, 0.7])
-        headers = ['Fecha', 'Asesor', 'Giro', 'Prospecto', 'Acción', '', '']
-        for idx, (col, header) in enumerate(zip(header_cols, headers)):
+        headers = [
+            ('fecha', 'Fecha'),
+            ('asesor', 'Asesor'),
+            ('giro', 'Giro'),
+            ('prospecto', 'Prospecto'),
+            ('accion_seguir', 'Acción'),
+            ('', ''),
+            ('', '')
+        ]
+        
+        for idx, (col, (col_name, header)) in enumerate(zip(header_cols, headers)):
             with col:
-                if header:
-                    st.markdown(f"**{header}**")
+                if header and col_name:
+                    # Determinar el ícono de ordenamiento
+                    if st.session_state.sort_column_citas == col_name:
+                        icon = ":material/arrow_upward:" if st.session_state.sort_ascending_citas else ":material/arrow_downward:"
+                    else:
+                        icon = ":material/unfold_more:"
+                    
+                    if st.button(f"{header} {icon}", key=f"sort_{col_name}", use_container_width=True):
+                        toggle_sort(col_name)
+                        st.rerun()
         
         st.markdown("---")
         
@@ -297,9 +340,21 @@ if len(data) > 0:
             cols = st.columns([1, 1.5, 1, 2, 2, 0.7, 0.7])
             
             with cols[0]:
-                st.text(row.get('fecha', ''))
+                fecha_display = row.get('fecha', '')
+                if isinstance(fecha_display, pd.Timestamp):
+                    fecha_display = fecha_display.strftime('%Y-%m-%d')
+                st.text(fecha_display)
             with cols[1]:
-                st.text(str(row.get('asesor', '')).upper())
+                if row.get('asesor', '') == "CARLOS ORTIZ":
+                    st.text("CARLOS ORTIZ")
+                elif row.get('asesor', '') == "HUGO ENRIQUE PÉREZ RAMÍREZ":
+                    st.text("HUGO PÉREZ")
+                elif row.get('asesor', '') == "JOSÉ ALVARO MARTÍNEZ ESPEJEL":
+                    st.text("ALVARO MARTÍNEZ")
+                elif row.get('asesor', '') == "MAURICIO GUTIÉRREZ PÉREZ PALMA":
+                    st.text("MAURICIO GUTIÉRREZ")
+                else:
+                    st.text(str(row.get('asesor', '')).upper())
             with cols[2]:
                 giro = str(row.get('giro', '')).upper()
                 st.text(giro[:15] + '...' if len(giro) > 15 else giro)
