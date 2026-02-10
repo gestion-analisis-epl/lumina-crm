@@ -156,9 +156,9 @@ def edit_dialog(idx):
                     'prospecto_id': row.get('prospecto_id', ''),
                     'asesor': asesor_edit,
                     'fecha': fecha_edit.strftime('%Y-%m-%d'),
-                    'prospecto': prospecto_edit,
+                    'prospecto': prospecto_edit.upper(),
                     'tipo': tipo_edit,
-                    'accion': accion_edit
+                    'accion': accion_edit.upper()
                 }
                 if save_data(updated_data, row_id):
                     st.success(":material/check_circle: Prospecto actualizado exitosamente!")
@@ -194,11 +194,11 @@ with st.container():
             nuevo_id = generar_id()
             nuevo_prospecto = {
                 'prospecto_id': nuevo_id,
-                'asesor': asesor,
+                'asesor': asesor.upper(),
                 'fecha': fecha.strftime('%Y-%m-%d'),
-                'prospecto': prospecto,
+                'prospecto': prospecto.upper(),
                 'tipo': tipo,
-                'accion': accion
+                'accion': accion.upper()
             }
             if save_data(nuevo_prospecto):
                 st.success(":material/check_circle: Prospecto agregado exitosamente!")
