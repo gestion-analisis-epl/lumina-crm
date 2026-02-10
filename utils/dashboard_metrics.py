@@ -64,7 +64,7 @@ class MetricsCalculator:
             citas_con_fecha = self.citas_data.copy()
             if 'fecha_dt' not in citas_con_fecha.columns:
                 citas_con_fecha['fecha_dt'] = pd.to_datetime(
-                    citas_con_fecha['fecha'], dayfirst=True, errors='coerce'
+                    citas_con_fecha['fecha'], dayfirst=False, errors='coerce'
                 )
             
             # Aplicar filtros
@@ -311,7 +311,7 @@ class MetricsCalculator:
         if 'fecha_dt' not in proyectos_con_fecha.columns:
             if 'fecha' in proyectos_con_fecha.columns:
                 proyectos_con_fecha['fecha_dt'] = pd.to_datetime(
-                    proyectos_con_fecha['fecha'], dayfirst=True, errors='coerce'
+                    proyectos_con_fecha['fecha'], dayfirst=False, errors='coerce'
                 )
             elif 'fecha_cotizacion' in proyectos_con_fecha.columns:
                 proyectos_con_fecha['fecha_dt'] = pd.to_datetime(

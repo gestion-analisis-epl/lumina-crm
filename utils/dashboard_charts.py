@@ -244,7 +244,7 @@ def mostrar_grafico_citas_por_mes(citas_filtradas):
         df_temp = citas_filtradas.copy()
         
         # Convertir la columna de fecha a datetime con formato específico
-        df_temp['fecha'] = pd.to_datetime(df_temp['fecha'], errors='coerce', dayfirst=True)
+        df_temp['fecha'] = pd.to_datetime(df_temp['fecha'], errors='coerce', dayfirst=False)
         
         # Filtrar fechas válidas
         citas_con_fecha = df_temp[df_temp['fecha'].notna()].copy()

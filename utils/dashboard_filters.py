@@ -102,12 +102,12 @@ class DashboardFilters:
         # Convertir columnas de fecha a datetime - formato dd/mm/aaaa
         if 'fecha' in citas_filtradas.columns and len(citas_filtradas) > 0:
             citas_filtradas['fecha_dt'] = pd.to_datetime(
-                citas_filtradas['fecha'], dayfirst=True, errors='coerce'
+                citas_filtradas['fecha'], dayfirst=False, errors='coerce'
             )
         
         if 'fecha' in prospeccion_filtrada.columns and len(prospeccion_filtrada) > 0:
             prospeccion_filtrada['fecha_dt'] = pd.to_datetime(
-                prospeccion_filtrada['fecha'], dayfirst=True, errors='coerce'
+                prospeccion_filtrada['fecha'], dayfirst=False, errors='coerce'
             )
         
         # Aplicar filtro por fecha si AMBAS fechas están definidas
