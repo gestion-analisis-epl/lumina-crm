@@ -200,17 +200,22 @@ def mostrar_grafico_proyectos_estado(proyectos_filtrados):
         proyectos_filtrados: DataFrame de proyectos filtrados
     """
     if len(proyectos_filtrados) > 0 and 'status' in proyectos_filtrados.columns:
+        # Normalizar estados a mayúsculas para el conteo
+        proyectos_temp = proyectos_filtrados.copy()
+        proyectos_temp['status_upper'] = proyectos_temp['status'].str.upper()
+        
         # Contar proyectos por estado
-        proyectos_por_estado = proyectos_filtrados.groupby('status').size().reset_index(name='Cantidad')
+        proyectos_por_estado = proyectos_temp.groupby('status_upper').size().reset_index(name='Cantidad')
+        proyectos_por_estado.rename(columns={'status_upper': 'status'}, inplace=True)
         
         st.markdown("#### :material/donut_small: Distribución de Proyectos por Estado")
         
         # Definir colores según el estado
         color_map = {
-            'En Proceso': '#FFA500',  # Naranja
-            'Vendido': '#2ECC71',  # Verde
-            'Ganado': '#2ECC71',   # Verde
-            'Perdido': '#E74C3C'   # Rojo
+            'EN PROCESO': '#FFA500',  # Naranja
+            'VENDIDO': '#2ECC71',  # Verde
+            'GANADO': '#2ECC71',   # Verde
+            'PERDIDO': '#E74C3C'   # Rojo
         }
         
         # Crear lista de colores basada en los estados presentes

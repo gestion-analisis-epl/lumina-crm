@@ -134,15 +134,15 @@ class DashboardFilters:
         # Filtro por asesor
         if asesor_seleccionado and asesor_seleccionado != "Todos":
             if 'asesor' in citas_filtradas.columns and len(citas_filtradas) > 0:
-                mask_asesor = citas_filtradas['asesor'].astype(str).str.strip() == asesor_seleccionado
+                mask_asesor = citas_filtradas['asesor'].astype(str).str.strip().str.upper() == asesor_seleccionado.upper()
                 citas_filtradas = citas_filtradas[mask_asesor].copy()
             
             if 'asesor' in prospeccion_filtrada.columns and len(prospeccion_filtrada) > 0:
-                mask_asesor = prospeccion_filtrada['asesor'].astype(str).str.strip() == asesor_seleccionado
+                mask_asesor = prospeccion_filtrada['asesor'].astype(str).str.strip().str.upper() == asesor_seleccionado.upper()
                 prospeccion_filtrada = prospeccion_filtrada[mask_asesor].copy()
             
             if 'asesor' in proyectos_filtrados.columns and len(proyectos_filtrados) > 0:
-                mask_asesor = proyectos_filtrados['asesor'].astype(str).str.strip() == asesor_seleccionado
+                mask_asesor = proyectos_filtrados['asesor'].astype(str).str.strip().str.upper() == asesor_seleccionado.upper()
                 proyectos_filtrados = proyectos_filtrados[mask_asesor].copy()
         
         # Limpiar columnas temporales antes de devolver

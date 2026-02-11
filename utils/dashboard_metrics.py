@@ -36,8 +36,8 @@ class MetricsCalculator:
         
         # Calcular ticket promedio
         vendidos = proyectos_filtrados[
-            (proyectos_filtrados['status'] == 'Vendido') |
-            (proyectos_filtrados['status'] == 'Ganado')
+            (proyectos_filtrados['status'].str.upper() == 'VENDIDO') |
+            (proyectos_filtrados['status'].str.upper() == 'GANADO')
         ] if 'status' in proyectos_filtrados.columns else proyectos_filtrados.iloc[0:0]
         
         ticket_promedio = vendidos['total'].sum() / len(vendidos) if len(vendidos) > 0 else 0
@@ -81,7 +81,7 @@ class MetricsCalculator:
             
             if asesor_seleccionado and asesor_seleccionado != "Todos":
                 citas_analisis = citas_analisis[
-                    citas_analisis['asesor'].astype(str).str.strip() == asesor_seleccionado
+                    citas_analisis['asesor'].astype(str).str.strip().str.upper() == asesor_seleccionado.upper()
                 ]
             
             # Calcular semana del año
@@ -132,15 +132,15 @@ class MetricsCalculator:
             dict: Diccionario con métricas por estado
         """
         proyectos_proceso = proyectos_filtrados[
-            proyectos_filtrados['status'] == 'En Proceso'
+            proyectos_filtrados['status'].str.upper() == 'EN PROCESO'
         ]['total'].sum() if 'status' in proyectos_filtrados.columns else 0
         
         proyectos_ganados = proyectos_filtrados[
-            proyectos_filtrados['status'] == 'Ganado'
+            proyectos_filtrados['status'].str.upper() == 'GANADO'
         ]['total'].sum() if 'status' in proyectos_filtrados.columns else 0
         
         proyectos_perdidos = proyectos_filtrados[
-            proyectos_filtrados['status'] == 'Perdido'
+            proyectos_filtrados['status'].str.upper() == 'PERDIDO'
         ]['total'].sum() if 'status' in proyectos_filtrados.columns else 0
         
         return {
@@ -213,24 +213,58 @@ class MetricsCalculator:
         ventas_totales = 0
         cotizaciones_totales = 0
         
+        # Preparar proyectos con fecha de facturación
+        proyectos_para_ventas = self.proyectos_data.copy()
+        
+        # Para ventas, usar fecha_facturacion si existe (solo para GANADO)
+        if 'fecha_facturacion' in proyectos_para_ventas.columns:
+            proyectos_para_ventas['fecha_venta'] = pd.to_datetime(
+                proyectos_para_ventas['fecha_facturacion'], errors='coerce'
+            )
+        else:
+            proyectos_para_ventas['fecha_venta'] = pd.NaT
+        
+        # Si no hay fecha_facturacion, usar fecha_cotizacion o fecha
+        if 'fecha_cotizacion' in proyectos_para_ventas.columns:
+            fecha_fallback = pd.to_datetime(proyectos_para_ventas['fecha_cotizacion'], errors='coerce')
+        elif 'fecha' in proyectos_para_ventas.columns:
+            fecha_fallback = pd.to_datetime(proyectos_para_ventas['fecha'], errors='coerce')
+        else:
+            fecha_fallback = pd.NaT
+        
+        proyectos_para_ventas['fecha_venta'] = proyectos_para_ventas['fecha_venta'].fillna(fecha_fallback)
+        
         for asesor in asesores_analizar:
             # Obtener meta del asesor (sumar todas las metas del rango)
             meta_asesor = metas_filtradas[
-                metas_filtradas['asesor'].astype(str).str.strip() == asesor
+                metas_filtradas['asesor'].astype(str).str.strip().str.upper() == asesor.upper()
             ]['meta'].sum() if len(metas_filtradas) > 0 else 0
             meta_total += meta_asesor
             
+            # Filtrar proyectos del asesor que son ventas (ganados o vendidos)
+            ventas_asesor_df = proyectos_para_ventas[
+                (proyectos_para_ventas['asesor'].astype(str).str.strip().str.upper() == asesor.upper()) &
+                ((proyectos_para_ventas['status'].str.upper() == 'VENDIDO') | 
+                 (proyectos_para_ventas['status'].str.upper() == 'GANADO'))
+            ].copy() if len(proyectos_para_ventas) > 0 else pd.DataFrame()
+            
+            # Aplicar filtro de fecha si está definido
+            if len(ventas_asesor_df) > 0 and fecha_inicio is not None and fecha_fin is not None:
+                fecha_inicio_dt = pd.to_datetime(fecha_inicio)
+                fecha_fin_dt = pd.to_datetime(fecha_fin)
+                ventas_asesor_df = ventas_asesor_df[
+                    (ventas_asesor_df['fecha_venta'].notna()) &
+                    (ventas_asesor_df['fecha_venta'] >= fecha_inicio_dt) &
+                    (ventas_asesor_df['fecha_venta'] <= fecha_fin_dt)
+                ]
+            
             # Calcular ventas
-            ventas_asesor = proyectos_filtrados[
-                (proyectos_filtrados['asesor'].astype(str).str.strip() == asesor) &
-                ((proyectos_filtrados['status'] == 'Vendido') | 
-                 (proyectos_filtrados['status'] == 'Ganado'))
-            ]['total'].sum() if len(proyectos_filtrados) > 0 else 0
+            ventas_asesor = ventas_asesor_df['total'].sum() if len(ventas_asesor_df) > 0 else 0
             ventas_totales += ventas_asesor
             
-            # Calcular cotizaciones
+            # Calcular cotizaciones (usar proyectos_filtrados original)
             cotizaciones_asesor = proyectos_filtrados[
-                proyectos_filtrados['asesor'].astype(str).str.strip() == asesor
+                proyectos_filtrados['asesor'].astype(str).str.strip().str.upper() == asesor.upper()
             ]['total'].sum() if len(proyectos_filtrados) > 0 else 0
             cotizaciones_totales += cotizaciones_asesor
         
@@ -304,30 +338,37 @@ class MetricsCalculator:
         # Sumar todas las metas del trimestre de todos los asesores
         meta_trimestre_total = metas_trimestre['meta'].sum() if len(metas_trimestre) > 0 else 0
         
-        # Filtrar proyectos vendidos del trimestre actual
-        proyectos_con_fecha = proyectos_filtrados.copy()
+        # Trabajar con todos los proyectos para usar fecha_facturacion
+        proyectos_con_fecha = self.proyectos_data.copy()
         
-        # Asegurar que tenemos la columna de fecha
-        if 'fecha_dt' not in proyectos_con_fecha.columns:
-            if 'fecha' in proyectos_con_fecha.columns:
-                proyectos_con_fecha['fecha_dt'] = pd.to_datetime(
-                    proyectos_con_fecha['fecha'], dayfirst=False, errors='coerce'
-                )
-            elif 'fecha_cotizacion' in proyectos_con_fecha.columns:
-                proyectos_con_fecha['fecha_dt'] = pd.to_datetime(
-                    proyectos_con_fecha['fecha_cotizacion'], errors='coerce'
-                )
+        # Para ventas, usar fecha_facturacion si existe (solo para GANADO), sino usar fecha_cotizacion/fecha
+        if 'fecha_facturacion' in proyectos_con_fecha.columns:
+            proyectos_con_fecha['fecha_venta'] = pd.to_datetime(
+                proyectos_con_fecha['fecha_facturacion'], errors='coerce'
+            )
+        else:
+            proyectos_con_fecha['fecha_venta'] = pd.NaT
+        
+        # Fallback a fecha_cotizacion o fecha si no hay fecha_facturacion
+        if 'fecha_cotizacion' in proyectos_con_fecha.columns:
+            fecha_fallback = pd.to_datetime(proyectos_con_fecha['fecha_cotizacion'], errors='coerce')
+        elif 'fecha' in proyectos_con_fecha.columns:
+            fecha_fallback = pd.to_datetime(proyectos_con_fecha['fecha'], dayfirst=False, errors='coerce')
+        else:
+            fecha_fallback = pd.NaT
+        
+        proyectos_con_fecha['fecha_venta'] = proyectos_con_fecha['fecha_venta'].fillna(fecha_fallback)
         
         # Filtrar ventas del trimestre actual (vendidos o ganados)
-        if 'fecha_dt' in proyectos_con_fecha.columns:
-            proyectos_con_fecha['mes'] = proyectos_con_fecha['fecha_dt'].dt.month
-            proyectos_con_fecha['ano'] = proyectos_con_fecha['fecha_dt'].dt.year
+        if 'fecha_venta' in proyectos_con_fecha.columns:
+            proyectos_con_fecha['mes'] = proyectos_con_fecha['fecha_venta'].dt.month
+            proyectos_con_fecha['ano'] = proyectos_con_fecha['fecha_venta'].dt.year
             
             ventas_trimestre = proyectos_con_fecha[
                 (proyectos_con_fecha['mes'].isin(meses_trimestre)) &
                 (proyectos_con_fecha['ano'] == anio_actual) &
-                ((proyectos_con_fecha['status'] == 'Vendido') | 
-                 (proyectos_con_fecha['status'] == 'Ganado'))
+                ((proyectos_con_fecha['status'].str.upper() == 'VENDIDO') | 
+                 (proyectos_con_fecha['status'].str.upper() == 'GANADO'))
             ] if 'status' in proyectos_con_fecha.columns else proyectos_con_fecha.iloc[0:0]
             
             ventas_trimestre_total = ventas_trimestre['total'].sum() if len(ventas_trimestre) > 0 else 0
@@ -352,4 +393,117 @@ class MetricsCalculator:
             'porcentaje_ventas': porcentaje_ventas,
             'delta_ventas': delta_ventas,
             'color_ventas': color_ventas
+        }    
+    def metricas_ventas_acumuladas_ytd(self, asesor_seleccionado, todos_asesores):
+        """
+        Calcula las métricas de ventas acumuladas del año hasta la fecha (YTD - Year To Date)
+        
+        Args:
+            asesor_seleccionado: Asesor seleccionado en filtros
+            todos_asesores: Lista de todos los asesores
+        
+        Returns:
+            dict: Diccionario con métricas YTD de ventas acumuladas
+        """
+        fecha_actual = datetime.now()
+        mes_actual = fecha_actual.month
+        anio_actual = fecha_actual.year
+        
+        # Obtener todos los meses desde enero hasta el mes actual
+        meses_ytd = list(range(1, mes_actual + 1))
+        
+        # Filtrar metas del año hasta la fecha
+        if len(self.metas_data) > 0:
+            metas_ytd = self.metas_data[
+                (self.metas_data['mes'].astype(int).isin(meses_ytd)) &
+                (self.metas_data['ano'].astype(int) == anio_actual)
+            ].copy()
+        else:
+            metas_ytd = pd.DataFrame()
+        
+        # Obtener asesores a analizar
+        asesores_analizar = [asesor_seleccionado] if asesor_seleccionado != "Todos" else todos_asesores
+        
+        # Calcular totales acumulados
+        meta_ytd_total = 0
+        ventas_ytd_total = 0
+        
+        # Preparar proyectos con fecha de facturación
+        proyectos_con_fecha = self.proyectos_data.copy()
+        
+        # Para ventas, usar fecha_facturacion si existe (solo para GANADO), sino usar fecha_cotizacion/fecha
+        if 'fecha_facturacion' in proyectos_con_fecha.columns:
+            proyectos_con_fecha['fecha_venta'] = pd.to_datetime(
+                proyectos_con_fecha['fecha_facturacion'], errors='coerce'
+            )
+        else:
+            proyectos_con_fecha['fecha_venta'] = pd.NaT
+        
+        # Fallback a fecha_cotizacion o fecha si no hay fecha_facturacion
+        if 'fecha_cotizacion' in proyectos_con_fecha.columns:
+            fecha_fallback = pd.to_datetime(proyectos_con_fecha['fecha_cotizacion'], errors='coerce')
+        elif 'fecha' in proyectos_con_fecha.columns:
+            fecha_fallback = pd.to_datetime(proyectos_con_fecha['fecha'], dayfirst=False, errors='coerce')
+        else:
+            fecha_fallback = pd.NaT
+        
+        proyectos_con_fecha['fecha_venta'] = proyectos_con_fecha['fecha_venta'].fillna(fecha_fallback)
+        
+        # Añadir columnas de mes y año
+        if 'fecha_venta' in proyectos_con_fecha.columns:
+            proyectos_con_fecha['mes'] = proyectos_con_fecha['fecha_venta'].dt.month
+            proyectos_con_fecha['ano'] = proyectos_con_fecha['fecha_venta'].dt.year
+        
+        for asesor in asesores_analizar:
+            # Calcular meta acumulada del asesor
+            meta_asesor_ytd = metas_ytd[
+                metas_ytd['asesor'].astype(str).str.strip().str.upper() == asesor.upper()
+            ]['meta'].sum() if len(metas_ytd) > 0 else 0
+            meta_ytd_total += meta_asesor_ytd
+            
+            # Calcular ventas acumuladas del asesor (solo vendidos/ganados)
+            if 'fecha_venta' in proyectos_con_fecha.columns:
+                ventas_asesor_ytd = proyectos_con_fecha[
+                    (proyectos_con_fecha['asesor'].astype(str).str.strip().str.upper() == asesor.upper()) &
+                    (proyectos_con_fecha['mes'].isin(meses_ytd)) &
+                    (proyectos_con_fecha['ano'] == anio_actual) &
+                    ((proyectos_con_fecha['status'].str.upper() == 'VENDIDO') | 
+                     (proyectos_con_fecha['status'].str.upper() == 'GANADO'))
+                ]['total'].sum() if 'status' in proyectos_con_fecha.columns else 0
+            else:
+                ventas_asesor_ytd = 0
+            
+            ventas_ytd_total += ventas_asesor_ytd
+        
+        # Calcular porcentaje y delta
+        if meta_ytd_total > 0:
+            porcentaje_ventas = (ventas_ytd_total / meta_ytd_total) * 100
+            faltante = meta_ytd_total - ventas_ytd_total
+            delta_ventas = f"{porcentaje_ventas:.1f}% - Falta: ${faltante:,.2f}" if faltante > 0 else f"{porcentaje_ventas:.1f}% - Superó: ${abs(faltante):,.2f}"
+            color_ventas = "normal" if porcentaje_ventas >= 100 else "inverse"
+        else:
+            porcentaje_ventas = 0
+            delta_ventas = "Sin meta definida"
+            color_ventas = "off"
+        
+        # Obtener nombres de meses para el título
+        meses_nombres = {
+            1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+            5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+            9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+        }
+        
+        if mes_actual == 1:
+            periodo_texto = "Enero"
+        else:
+            periodo_texto = f"Enero - {meses_nombres[mes_actual]}"
+        
+        return {
+            'meta_ytd_total': meta_ytd_total,
+            'ventas_ytd_total': ventas_ytd_total,
+            'porcentaje_ventas': porcentaje_ventas,
+            'delta_ventas': delta_ventas,
+            'color_ventas': color_ventas,
+            'periodo_texto': periodo_texto,
+            'meses_count': len(meses_ytd)
         }

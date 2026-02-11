@@ -131,7 +131,7 @@ def edit_dialog(idx):
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            asesor_edit = st.selectbox("Asesor *", ASESORES, index=ASESORES.index(row.get('asesor', '').title()) if row.get('asesor', '').title() in ASESORES else 0).title()
+            asesor_edit = st.selectbox("Asesor *", ASESORES, index=ASESORES.index(row.get('asesor', '').upper()) if row.get('asesor', '').upper() in ASESORES else 0).upper()
             try:
                 fecha_edit = st.date_input("Fecha *", 
                                           value=pd.to_datetime(row.get('fecha', date.today())))
@@ -139,13 +139,13 @@ def edit_dialog(idx):
                 fecha_edit = st.date_input("Fecha *", value=date.today())
         
         with col2:
-            prospecto_edit = st.text_input("Prospecto *", value=row.get('prospecto', '')).title()
-            tipo_options = ["Venta", "Renta"]
+            prospecto_edit = st.text_input("Prospecto *", value=row.get('prospecto', '')).upper()
+            tipo_options = ["VENTA", "RENTA"]
             tipo_edit = st.selectbox("Tipo", tipo_options,
-                                        index=tipo_options.index(row.get('tipo', 'Venta')) if row.get('tipo', 'Venta') in tipo_options else 0)
+                                        index=tipo_options.index(row.get('tipo', 'VENTA')) if row.get('tipo', 'VENTA') in tipo_options else 0)
         
         with col3:
-            accion_edit = st.text_area("Acción *", value=row.get('accion', '')).capitalize()
+            accion_edit = st.text_area("Acción *", value=row.get('accion', '')).upper()
         
         col_btn1, col_btn2 = st.columns(2)
         
@@ -159,7 +159,7 @@ def edit_dialog(idx):
                 row_id = row.get('id', '')
                 updated_data = {
                     'prospecto_id': row.get('prospecto_id', ''),
-                    'asesor': asesor_edit,
+                    'asesor': asesor_edit.upper(),
                     'fecha': fecha_edit.strftime('%Y-%m-%d'),
                     'prospecto': prospecto_edit.upper(),
                     'tipo': tipo_edit,
@@ -184,15 +184,15 @@ with st.container():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        asesor = st.selectbox("Asesor *", ASESORES, key="asesor_prospecto").title()
+        asesor = st.selectbox("Asesor *", ASESORES, key="asesor_prospecto").upper()
         fecha = st.date_input("Fecha *", value=date.today(), key="fecha_prospecto")
     
     with col2:
-        prospecto = st.text_input("Prospecto *", key="nombre_prospecto").title()
-        tipo = st.selectbox("Tipo", ["Venta", "Renta"], key="tipo_prospecto")
+        prospecto = st.text_input("Prospecto *", key="nombre_prospecto").upper()
+        tipo = st.selectbox("Tipo", ["VENTA", "RENTA"], key="tipo_prospecto")
     
     with col3:
-        accion = st.text_area("Acción *", key="accion_prospecto").capitalize()
+        accion = st.text_area("Acción *", key="accion_prospecto").upper()
     
     if st.button(":material/save: Guardar Prospecto", key="guardar_prospecto", type="primary", use_container_width=True):
         if asesor and prospecto and accion:

@@ -92,6 +92,42 @@ try:
         
         st.markdown("---")
         
+        # Performance Acumulada (YTD - Year To Date)
+        st.markdown("#### :material/bar_chart: Performance Acumulada del Año")
+        st.caption(f"Ventas y metas acumuladas desde Enero hasta el mes actual")
+        
+        metricas_ytd = calculator.metricas_ventas_acumuladas_ytd(
+            asesor_seleccionado, todos_asesores
+        )
+        
+        col_ytd1, col_ytd2, col_ytd3 = st.columns(3)
+        
+        with col_ytd1:
+            st.metric(
+                label=f":material/flag: Meta Acumulada ({metricas_ytd['periodo_texto']})",
+                value=f"${metricas_ytd['meta_ytd_total']:,.2f}",
+                help=f"Meta total acumulada de {metricas_ytd['meses_count']} mes(es)"
+            )
+        
+        with col_ytd2:
+            st.metric(
+                label=f":material/trending_up: Ventas Acumuladas ({metricas_ytd['periodo_texto']})",
+                value=f"${metricas_ytd['ventas_ytd_total']:,.2f}",
+                delta=metricas_ytd['delta_ventas'],
+                delta_color=metricas_ytd['color_ventas'],
+                help=f"Ventas totales acumuladas de {metricas_ytd['meses_count']} mes(es)"
+            )
+        
+        with col_ytd3:
+            st.metric(
+                label=":material/percent: Cumplimiento Acumulado",
+                value=f"{metricas_ytd['porcentaje_ventas']:.1f}%",
+                delta="En meta" if metricas_ytd['porcentaje_ventas'] >= 100 else f"Falta {100 - metricas_ytd['porcentaje_ventas']:.1f}%",
+                delta_color=metricas_ytd['color_ventas']
+            )
+        
+        st.markdown("---")
+        
         # Performance Trimestral
         st.markdown("#### :material/calendar_month: Performance Trimestral")
         

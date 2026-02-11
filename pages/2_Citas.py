@@ -131,7 +131,7 @@ def edit_dialog(idx):
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            asesor_edit = st.selectbox("Asesor *", ASESORES, index=ASESORES.index(row.get('asesor', '').title()) if row.get('asesor', '').title() in ASESORES else 0).title()
+            asesor_edit = st.selectbox("Asesor *", ASESORES, index=ASESORES.index(row.get('asesor', '').upper()) if row.get('asesor', '').upper() in ASESORES else 0).upper()
             try:
                 fecha_edit = st.date_input("Fecha *", 
                                           value=pd.to_datetime(row.get('fecha', date.today())))
@@ -139,11 +139,11 @@ def edit_dialog(idx):
                 fecha_edit = st.date_input("Fecha *", value=date.today())
         
         with col2:
-            prospecto_edit = st.text_input("Prospecto *", value=row.get('prospecto', '')).title()
-            giro_edit = st.text_input("Giro", value=row.get('giro', '')).title()
+            prospecto_edit = st.text_input("Prospecto *", value=row.get('prospecto', '')).upper()
+            giro_edit = st.text_input("Giro", value=row.get('giro', '')).upper()
         
         with col3:
-            accion_seguir_edit = st.text_area("Acción a Seguir", value=row.get('accion_seguir', '')).title()
+            accion_seguir_edit = st.text_area("Acción a Seguir", value=row.get('accion_seguir', '')).upper()
             try:
                 ultimo_contacto_edit = st.date_input("Último Contacto", 
                                                     value=pd.to_datetime(row.get('ultimo_contacto', date.today())))
@@ -162,11 +162,11 @@ def edit_dialog(idx):
                 row_id = row.get('id', '')
                 updated_data = {
                     'cita_id': row.get('cita_id', ''),
-                    'asesor': asesor_edit,
+                    'asesor': asesor_edit.upper(),
                     'fecha': fecha_edit.strftime('%Y-%m-%d'),
-                    'prospecto': prospecto_edit,
-                    'giro': giro_edit,
-                    'accion_seguir': accion_seguir_edit,
+                    'prospecto': prospecto_edit.upper(),
+                    'giro': giro_edit.upper(),
+                    'accion_seguir': accion_seguir_edit.upper(),
                     'ultimo_contacto': ultimo_contacto_edit.strftime('%Y-%m-%d')
                 }
                 if save_data(updated_data, row_id):

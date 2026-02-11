@@ -42,7 +42,7 @@ if 'show_edit_dialog_proyectos' not in st.session_state:
 if 'edit_index_proyectos' not in st.session_state:
     st.session_state.edit_index_proyectos = None
 if 'status_proyectos' not in st.session_state:
-    st.session_state.status_proyectos = "En Proceso"
+    st.session_state.status_proyectos = "EN PROCESO"
 # Nuevos estados para ordenamiento
 if 'sort_column_proyectos' not in st.session_state:
     st.session_state.sort_column_proyectos = 'fecha_cotizacion'
@@ -130,8 +130,8 @@ def edit_dialog(idx):
     st.info(f"**ID:** {row.get('proyecto_id', '')}")
     
     # Status fuera del formulario para permitir interactividad
-    status_options = ["Perdido", "Ganado", "En Proceso"]
-    status_actual = row.get('status', 'En Proceso')
+    status_options = ["PERDIDO", "GANADO", "EN PROCESO"]
+    status_actual = row.get('status', 'EN PROCESO')
     status_index = status_options.index(status_actual) if status_actual in status_options else 2
     
     status_edit = st.selectbox("Status", status_options, index=status_index, key=f"status_edit_{idx}")
@@ -159,11 +159,22 @@ def edit_dialog(idx):
         with col3:
             # Mostrar motivo solo si status es Perdido
             motivo_perdida_edit = ""
-            if status_edit == "Perdido":
-                motivo_opciones = ["Precio", "Stock/Inventario", "Otro"]
+            if status_edit == "PERDIDO":
+                motivo_opciones = ["PRECIO", "STOCK/INVENTARIO", "OTRO"]
                 motivo_actual = row.get('motivo_perdida', '')
                 motivo_index = motivo_opciones.index(motivo_actual) if motivo_actual in motivo_opciones else 0
                 motivo_perdida_edit = st.selectbox("Motivo de Pérdida *", motivo_opciones, index=motivo_index)
+            
+            # Mostrar fecha de facturación solo si status es Ganado
+            fecha_facturacion_edit = None
+            if status_edit == "GANADO":
+                fecha_fact_value = row.get('fecha_facturacion', None)
+                if fecha_fact_value and isinstance(fecha_fact_value, str):
+                    try:
+                        fecha_fact_value = datetime.strptime(fecha_fact_value, '%Y-%m-%d').date()
+                    except:
+                        fecha_fact_value = None
+                fecha_facturacion_edit = st.date_input("Fecha de Facturación *", value=fecha_fact_value, key=f"fecha_fact_edit_{idx}", help="Fecha en que se facturó el proyecto")
             
             total_edit = st.number_input("Total ($) *", min_value=0.0, step=0.01, 
                                         value=float(row.get('total', 0)))
@@ -180,8 +191,11 @@ def edit_dialog(idx):
         if guardar:
             if asesor_edit and proyecto_edit and cliente_edit:
                 # Validar motivo si es Perdido
-                if status_edit == "Perdido" and not motivo_perdida_edit:
+                if status_edit == "PERDIDO" and not motivo_perdida_edit:
                     st.error(":material/warning: Por favor selecciona el motivo de pérdida")
+                # Validar fecha de facturación si es Ganado
+                elif status_edit == "GANADO" and not fecha_facturacion_edit:
+                    st.error(":material/warning: Por favor selecciona la fecha de facturación")
                 else:
                     row_id = row.get('id', '')
                     updated_data = {
@@ -193,7 +207,8 @@ def edit_dialog(idx):
                         'cliente': cliente_edit,
                         'status': status_edit,
                         'total': total_edit,
-                        'motivo_perdida': motivo_perdida_edit if status_edit == "Perdido" else "",
+                        'motivo_perdida': motivo_perdida_edit if status_edit == "PERDIDO" else "",
+                        'fecha_facturacion': fecha_facturacion_edit.isoformat() if status_edit == "GANADO" and fecha_facturacion_edit else None,
                         'observaciones': observaciones_edit
                     }
                     if save_data(updated_data, row_id):
@@ -217,21 +232,26 @@ with st.container():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        asesor = st.selectbox("Selecciona un asesor de ventas", ASESORES, key="asesor_nuevo").title()
+        asesor = st.selectbox("Selecciona un asesor de ventas", ASESORES, key="asesor_nuevo").upper()
         cotizacion = st.text_input("No. de Cotización", key="cotizacion_nueva")
         fecha_cotizacion = st.date_input("Fecha de Cotización", value=None, key="fecha_cotizacion_nueva")
     
     with col2:
-        proyecto = st.text_input("Proyecto/Cotización *", key="proyecto_nuevo")
+        proyecto = st.text_input("Proyecto *", key="proyecto_nuevo")
         cliente = st.text_input("Cliente *", key="cliente_nuevo")
     
     with col3:
-        status = st.selectbox("Status *", ["Perdido", "Ganado", "En Proceso"], index=2, key="status_nuevo")
+        status = st.selectbox("Status *", ["PERDIDO", "GANADO", "EN PROCESO"], index=2, key="status_nuevo")
         
         # Mostrar motivo de pérdida solo si status es "Perdido"
         motivo_perdida = ""
-        if status == "Perdido":
-            motivo_perdida = st.selectbox("Motivo de Pérdida *", ["Precio", "Stock/Inventario", "Otro"], key="motivo_nuevo")
+        if status == "PERDIDO":
+            motivo_perdida = st.selectbox("Motivo de Pérdida *", ["PRECIO", "STOCK/INVENTARIO", "OTRO"], key="motivo_nuevo")
+        
+        # Mostrar fecha de facturación solo si status es "Ganado"
+        fecha_facturacion = None
+        if status == "GANADO":
+            fecha_facturacion = st.date_input("Fecha de Facturación *", value=None, key="fecha_facturacion_nueva", help="Fecha en que se facturó el proyecto")
         
         total = st.number_input("Total ($) *", min_value=0.0, step=0.01, key="total_nuevo")
     
@@ -240,21 +260,25 @@ with st.container():
     if st.button(":material/save: Guardar Proyecto/Cotización", key="guardar_proyecto", type="primary", use_container_width=True):
         if asesor and proyecto and cliente:
             # Validar que si es Perdido, tenga motivo
-            if status == "Perdido" and not motivo_perdida:
+            if status == "PERDIDO" and not motivo_perdida:
                 st.error(":material/warning: Por favor selecciona el motivo de pérdida")
+            # Validar que si es Ganado, tenga fecha de facturación
+            elif status == "GANADO" and not fecha_facturacion:
+                st.error(":material/warning: Por favor selecciona la fecha de facturación")
             else:
                 nuevo_id = generar_id()
                 nuevo_proyecto = {
                     'proyecto_id': nuevo_id,
-                    'asesor': asesor,
+                    'asesor': asesor.upper(),
                     'cotizacion': cotizacion,
                     'fecha_cotizacion': fecha_cotizacion.isoformat() if fecha_cotizacion else None,
-                    'proyecto': proyecto,
-                    'cliente': cliente,
+                    'proyecto': proyecto.upper(),
+                    'cliente': cliente.upper(),
                     'status': status,
                     'total': total,
-                    'motivo_perdida': motivo_perdida if status == "Perdido" else "",
-                    'observaciones': observaciones.capitalize() if observaciones else ""
+                    'motivo_perdida': motivo_perdida.upper() if status == "PERDIDO" else "",
+                    'fecha_facturacion': fecha_facturacion.isoformat() if status == "GANADO" and fecha_facturacion else None,
+                    'observaciones': observaciones.upper() if observaciones else ""
                 }
                 if save_data(nuevo_proyecto):
                     st.success(":material/check_circle: Proyecto agregado exitosamente!")
@@ -291,9 +315,9 @@ if len(data) > 0:
     # Aplicar ordenamiento
     if st.session_state.sort_column_proyectos in filtered_data.columns:
         # Convertir fecha a datetime si es la columna de ordenamiento
-        if st.session_state.sort_column_proyectos == 'fecha_cotizacion':
+        if st.session_state.sort_column_proyectos in ['fecha_cotizacion', 'fecha_facturacion']:
             filtered_data = filtered_data.copy()
-            filtered_data['fecha_cotizacion'] = pd.to_datetime(filtered_data['fecha_cotizacion'])
+            filtered_data[st.session_state.sort_column_proyectos] = pd.to_datetime(filtered_data[st.session_state.sort_column_proyectos])
         
         filtered_data = filtered_data.sort_values(
             by=st.session_state.sort_column_proyectos,
@@ -305,12 +329,32 @@ if len(data) > 0:
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             # Seleccionar solo las columnas relevantes para exportar
-            export_df = df[['proyecto_id', 'asesor', 'cotizacion', 'fecha_cotizacion', 'proyecto', 'cliente', 'status', 'total', 'motivo_perdida', 'observaciones']].copy()
-            export_df.columns = ['ID', 'Asesor', 'No. Cotización', 'Fecha Cotización', 'Proyecto', 'Cliente', 'Status', 'Total', 'Motivo Pérdida', 'Observaciones']
+            columnas_exportar = ['proyecto_id', 'asesor', 'cotizacion', 'fecha_cotizacion', 'proyecto', 'cliente', 'status', 'fecha_facturacion', 'total', 'motivo_perdida', 'observaciones']
+            # Filtrar solo las columnas que existen en el DataFrame
+            columnas_disponibles = [col for col in columnas_exportar if col in df.columns]
+            export_df = df[columnas_disponibles].copy()
+            
+            # Renombrar columnas
+            nombres_columnas = {
+                'proyecto_id': 'ID',
+                'asesor': 'Asesor',
+                'cotizacion': 'No. Cotización',
+                'fecha_cotizacion': 'Fecha Cotización',
+                'proyecto': 'Proyecto',
+                'cliente': 'Cliente',
+                'status': 'Status',
+                'fecha_facturacion': 'Fecha Facturación',
+                'total': 'Total',
+                'motivo_perdida': 'Motivo Pérdida',
+                'observaciones': 'Observaciones'
+            }
+            export_df.rename(columns=nombres_columnas, inplace=True)
+            
             # Convertir columnas de texto a mayúsculas
             text_columns = ['ID', 'Asesor', 'No. Cotización', 'Proyecto', 'Cliente', 'Status', 'Motivo Pérdida', 'Observaciones']
             for col in text_columns:
-                export_df[col] = export_df[col].astype(str).str.upper()
+                if col in export_df.columns:
+                    export_df[col] = export_df[col].astype(str).str.upper()
             export_df.to_excel(writer, index=False, sheet_name='Proyectos')
         return output.getvalue()
     
@@ -352,14 +396,15 @@ if len(data) > 0:
             st.session_state.page_proyectos = 0  # Resetear a la primera página
         
         # Encabezados con botones de ordenamiento
-        header_cols = st.columns([1, 2, 0.8, 1.5, 1.2, 1, 1.5, 0.7, 0.7])
+        header_cols = st.columns([1, 1.8, 0.7, 1.3, 1.1, 0.9, 0.9, 1.2, 0.6, 0.6])
         headers = [
             ('asesor', 'Asesor'),
-            ('proyecto', 'Proyecto/Cotización'),
+            ('proyecto', 'Proyecto'),
             ('cotizacion', 'Cot.'),
             ('cliente', 'Cliente'),
             ('status', 'Status'),
-            ('fecha_cotizacion', 'Fecha'),
+            ('fecha_facturacion', 'F. Fact.'),
+            ('fecha_cotizacion', 'F. Cot.'),
             ('total', 'Total'),
             ('', ''),
             ('', '')
@@ -381,7 +426,7 @@ if len(data) > 0:
         st.markdown("---")
         
         for idx, row in page_data.iterrows():
-            cols = st.columns([1, 2, 0.8, 1.5, 1.2, 1, 1.5, 0.7, 0.7])
+            cols = st.columns([1, 1.8, 0.7, 1.3, 1.1, 0.9, 0.9, 1.2, 0.6, 0.6])
             
             with cols[0]:
                 if row.get('asesor', '') == "CARLOS ORTIZ":
@@ -396,33 +441,57 @@ if len(data) > 0:
                     st.text(str(row.get('asesor', '')).upper())
             with cols[1]:
                 proyecto = str(row.get('proyecto', '')).upper()
-                st.text(proyecto[:25] + '...' if len(proyecto) > 25 else proyecto)
+                st.text(proyecto[:20] + '...' if len(proyecto) > 20 else proyecto)
             with cols[2]:
                 st.text(row.get('cotizacion', ''))
             with cols[3]:
-                st.text(str(row.get('cliente', '')).upper())
+                cliente = str(row.get('cliente', '')).upper()
+                st.text(cliente[:15] + '...' if len(cliente) > 15 else cliente)
             with cols[4]:
-                status = row.get('status', '').title()
+                status = row.get('status', '').upper()
                 color_map = {
-                    'Vendido': '#4ac783',
-                    'Ganado': '#4ac783',
-                    'Perdido': '#ff715a',
-                    'En Proceso': '#fdc400'
+                    'VENDIDO': '#4ac783',
+                    'GANADO': '#4ac783',
+                    'PERDIDO': '#ff715a',
+                    'EN PROCESO': '#fdc400'
                 }
                 bg_color = color_map.get(status, "#007fd6")
-                st.markdown(f'<div style="background-color: {bg_color}; color: white; padding: 4px 8px; border-radius: 4px; text-align: center; font-size: 12px;">{status}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="background-color: {bg_color}; color: white; padding: 4px 8px; border-radius: 4px; text-align: center; font-size: 11px;">{status}</div>', unsafe_allow_html=True)
             with cols[5]:
-                fecha_display = row.get('fecha_cotizacion', '')
-                if isinstance(fecha_display, pd.Timestamp):
-                    fecha_display = fecha_display.strftime('%Y-%m-%d')
-                st.text(fecha_display)
+                # Fecha de facturación (solo para GANADO)
+                fecha_fact = row.get('fecha_facturacion', '')
+                if fecha_fact:
+                    if isinstance(fecha_fact, pd.Timestamp):
+                        fecha_fact = fecha_fact.strftime('%d/%m/%y')
+                    elif isinstance(fecha_fact, str) and fecha_fact:
+                        try:
+                            fecha_fact = pd.to_datetime(fecha_fact).strftime('%d/%m/%y')
+                        except:
+                            pass
+                    st.text(fecha_fact)
+                else:
+                    st.text("-")
             with cols[6]:
-                total_val = row.get('total', 0)
-                st.text(f"${total_val:,.2f}" if pd.notna(total_val) else "$0.00")
+                # Fecha de cotización
+                fecha_cot = row.get('fecha_cotizacion', '')
+                if fecha_cot:
+                    if isinstance(fecha_cot, pd.Timestamp):
+                        fecha_cot = fecha_cot.strftime('%d/%m/%y')
+                    elif isinstance(fecha_cot, str) and fecha_cot:
+                        try:
+                            fecha_cot = pd.to_datetime(fecha_cot).strftime('%d/%m/%y')
+                        except:
+                            pass
+                    st.text(fecha_cot)
+                else:
+                    st.text("-")
             with cols[7]:
+                total_val = row.get('total', 0)
+                st.text(f"${total_val:,.0f}" if pd.notna(total_val) else "$0")
+            with cols[8]:
                 if st.button(":material/edit:", key=f"edit_proy_{idx}", help="Editar", use_container_width=True):
                     edit_dialog(idx)
-            with cols[8]:
+            with cols[9]:
                 if st.button(":material/delete:", key=f"delete_proy_{idx}", help="Eliminar", use_container_width=True):
                     confirm_delete(idx)
         
