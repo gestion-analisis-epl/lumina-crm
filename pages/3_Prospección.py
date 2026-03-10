@@ -1,4 +1,5 @@
 import streamlit as st
+from styles.tablejs import estilo_tabla_js
 from utils.supabase_client import get_supabase_client
 import pandas as pd
 from datetime import datetime, date
@@ -11,7 +12,6 @@ from utils.opciones import ASESORES
 
 st.set_page_config(page_title="Prospección", page_icon="🎯", layout="wide")
 
-# Estilos CSS personalizados con Materialize
 st.markdown("""
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -29,10 +29,9 @@ st.markdown("""
 
 st.title(":material/emoji_events: Gestión de Prospección")
 
-# Conexión a Supabase
 client = get_supabase_client()
 
-# Inicializar estados de sesión
+# ── SESSION STATE ─────────────────────────────────────
 if 'page_prospeccion' not in st.session_state:
     st.session_state.page_prospeccion = 0
 if 'search_query_prospeccion' not in st.session_state:
@@ -41,19 +40,30 @@ if 'show_edit_dialog_prospeccion' not in st.session_state:
     st.session_state.show_edit_dialog_prospeccion = False
 if 'edit_index_prospeccion' not in st.session_state:
     st.session_state.edit_index_prospeccion = None
-# Nuevos estados para ordenamiento
 if 'sort_column_prospeccion' not in st.session_state:
     st.session_state.sort_column_prospeccion = 'fecha'
 if 'sort_ascending_prospeccion' not in st.session_state:
     st.session_state.sort_ascending_prospeccion = False
+if 'last_search_prospeccion' not in st.session_state:
+    st.session_state.last_search_prospeccion = ""
 
-# Cargar datos
+ITEMS_PER_PAGE = 15
+
+# ── DATA ──────────────────────────────────────────────
 @st.cache_data(ttl=5)
 def load_data():
     try:
         response = client.select("prospeccion").execute()
         if response.data:
             data = pd.DataFrame(response.data)
+            data = data.rename(columns={
+                'prospecto_id': 'ID DE PROSPECTO',
+                'asesor':       'ASESOR',
+                'fecha':        'FECHA',
+                'prospecto':    'PROSPECTO',
+                'tipo':         'TIPO',
+                'accion':       'ACCIÓN',
+            })
             return data
         return pd.DataFrame()
     except Exception as e:
@@ -61,13 +71,10 @@ def load_data():
         return pd.DataFrame()
 
 def save_data(row_data, row_id=None):
-    """Guarda o actualiza un registro en Supabase"""
     try:
         if row_id:
-            # Actualizar registro existente
             client.update("prospeccion", row_data, {"id": row_id})
         else:
-            # Insertar nuevo registro
             client.insert("prospeccion", row_data)
         st.cache_data.clear()
         return True
@@ -76,7 +83,6 @@ def save_data(row_data, row_id=None):
         return False
 
 def delete_data(row_id):
-    """Elimina un registro de Supabase"""
     try:
         client.delete("prospeccion", {"id": row_id})
         st.cache_data.clear()
@@ -86,26 +92,24 @@ def delete_data(row_id):
         return False
 
 def generar_id():
-    """Genera un ID con formato ID-XXXXXXXXXXXXX"""
     numero = random.randint(1000000000000, 9999999999999)
     return f"ID-{numero}"
 
+# ── DIALOGS ───────────────────────────────────────────
 @st.dialog(":material/warning: Confirmar Eliminación")
 def confirm_delete(idx):
     data = load_data()
     if idx not in data.index:
         st.error("Registro no encontrado")
         return
-    
+
     row = data.loc[idx]
-    st.warning(f"¿Estás seguro de que deseas eliminar este prospecto?")
-    
-    st.info(f"**Prospecto:** {row.get('prospecto', '')}\n\n**Asesor:** {row.get('asesor', '')}\n\n**Fecha:** {row.get('fecha', '')}")
-    
+    st.warning("¿Estás seguro de que deseas eliminar este prospecto?")
+    st.info(f"**Prospecto:** {row.get('PROSPECTO', '')}\n\n**Asesor:** {row.get('ASESOR', '')}\n\n**Fecha:** {row.get('FECHA', '')}")
+
     col1, col2 = st.columns(2)
     with col1:
         if st.button(":material/delete: Sí, Eliminar", use_container_width=True, type="primary"):
-            # Obtener el ID de la base de datos
             row_id = row.get('id', '')
             if row_id and delete_data(row_id):
                 st.success(":material/check_circle: Registro eliminado exitosamente")
@@ -121,49 +125,50 @@ def edit_dialog(idx):
     if idx not in data.index:
         st.error("Registro no encontrado")
         return
-    
+
     row = data.loc[idx]
-    
+    st.info(f"**ID:** {row.get('ID DE PROSPECTO', '')}")
+
     with st.form("form_editar_prospecto"):
-        # Mostrar ID (no editable)
-        st.info(f"**ID:** {row.get('prospecto_id', '')}")
-        
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
-            asesor_edit = st.selectbox("Asesor *", ASESORES, index=ASESORES.index(row.get('asesor', '').upper()) if row.get('asesor', '').upper() in ASESORES else 0).upper()
+            asesor_edit = st.selectbox(
+                "Asesor *", ASESORES,
+                index=ASESORES.index(row.get('ASESOR', '').upper()) if row.get('ASESOR', '').upper() in ASESORES else 0
+            ).upper()
             try:
-                fecha_edit = st.date_input("Fecha *", 
-                                          value=pd.to_datetime(row.get('fecha', date.today())))
+                fecha_edit = st.date_input("Fecha *", value=pd.to_datetime(row.get('FECHA', date.today())))
             except:
                 fecha_edit = st.date_input("Fecha *", value=date.today())
-        
+
         with col2:
-            prospecto_edit = st.text_input("Prospecto *", value=row.get('prospecto', '')).upper()
+            prospecto_edit = st.text_input("Prospecto *", value=row.get('PROSPECTO', '')).upper()
             tipo_options = ["VENTA", "RENTA"]
-            tipo_edit = st.selectbox("Tipo", tipo_options,
-                                        index=tipo_options.index(row.get('tipo', 'VENTA')) if row.get('tipo', 'VENTA') in tipo_options else 0)
-        
+            tipo_edit = st.selectbox(
+                "Tipo", tipo_options,
+                index=tipo_options.index(row.get('TIPO', 'VENTA')) if row.get('TIPO', 'VENTA') in tipo_options else 0
+            )
+
         with col3:
-            accion_edit = st.text_area("Acción *", value=row.get('accion', '')).upper()
-        
+            accion_edit = st.text_area("Acción *", value=row.get('ACCIÓN', '')).upper()
+
         col_btn1, col_btn2 = st.columns(2)
-        
         with col_btn1:
             guardar = st.form_submit_button(":material/save: Guardar Cambios", use_container_width=True)
         with col_btn2:
             cancelar = st.form_submit_button(":material/cancel: Cancelar", use_container_width=True)
-        
+
         if guardar:
             if asesor_edit and prospecto_edit and accion_edit:
                 row_id = row.get('id', '')
                 updated_data = {
-                    'prospecto_id': row.get('prospecto_id', ''),
-                    'asesor': asesor_edit.upper(),
-                    'fecha': fecha_edit.strftime('%Y-%m-%d'),
-                    'prospecto': prospecto_edit.upper(),
-                    'tipo': tipo_edit,
-                    'accion': accion_edit.upper()
+                    'prospecto_id': row.get('ID DE PROSPECTO', ''),
+                    'asesor':       asesor_edit.upper(),
+                    'fecha':        fecha_edit.strftime('%Y-%m-%d'),
+                    'prospecto':    prospecto_edit.upper(),
+                    'tipo':         tipo_edit,
+                    'accion':       accion_edit.upper(),
                 }
                 if save_data(updated_data, row_id):
                     st.success(":material/check_circle: Prospecto actualizado exitosamente!")
@@ -172,38 +177,39 @@ def edit_dialog(idx):
                     st.rerun()
             else:
                 st.error(":material/warning: Por favor completa los campos obligatorios (*)")
-        
+
         if cancelar:
             st.session_state.show_edit_dialog_prospeccion = False
             st.session_state.edit_index_prospeccion = None
             st.rerun()
 
-# Formulario para agregar nuevo prospecto
+# ── FORMULARIO NUEVO PROSPECTO ────────────────────────
 st.markdown("#### :material/add: Agregar Nuevo Prospecto")
+
 with st.container():
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         asesor = st.selectbox("Asesor *", ASESORES, key="asesor_prospecto").upper()
         fecha = st.date_input("Fecha *", value=date.today(), key="fecha_prospecto")
-    
+
     with col2:
         prospecto = st.text_input("Prospecto *", key="nombre_prospecto").upper()
         tipo = st.selectbox("Tipo", ["VENTA", "RENTA"], key="tipo_prospecto")
-    
+
     with col3:
         accion = st.text_area("Acción *", key="accion_prospecto").upper()
-    
+
     if st.button(":material/save: Guardar Prospecto", key="guardar_prospecto", type="primary", use_container_width=True):
         if asesor and prospecto and accion:
             nuevo_id = generar_id()
             nuevo_prospecto = {
                 'prospecto_id': nuevo_id,
-                'asesor': asesor.upper(),
-                'fecha': fecha.strftime('%Y-%m-%d'),
-                'prospecto': prospecto.upper(),
-                'tipo': tipo,
-                'accion': accion.upper()
+                'asesor':       asesor.upper(),
+                'fecha':        fecha.strftime('%Y-%m-%d'),
+                'prospecto':    prospecto.upper(),
+                'tipo':         tipo,
+                'accion':       accion.upper(),
             }
             if save_data(nuevo_prospecto):
                 st.success(":material/check_circle: Prospecto agregado exitosamente!")
@@ -214,170 +220,171 @@ with st.container():
 
 st.markdown("---")
 
-# Mostrar tabla de prospectos
+# ── TABLA ─────────────────────────────────────────────
 st.markdown("#### :material/list: Lista de Prospectos")
+
+def generar_tabla(data, btnedit=None, btndelete=None):
+    columnas_visibles = [col for col in data.columns if col not in ['id', 'ID DE PROSPECTO', 'created_at', 'updated_at']]
+    tabla_html = '<table class="responsive-table">\n<thead>\n<tr>\n'
+
+    for col in columnas_visibles:
+        tabla_html += f'    <th>{col}</th>\n'
+    tabla_html += '    <th>Acción</th>\n</tr>\n</thead>\n<tbody>\n'
+
+    for index, row in data.iterrows():
+        tabla_html += '    <tr>\n'
+
+        for col in columnas_visibles:
+            if col == 'TIPO':
+                badge_color = "#2196F3" if row.get('TIPO', '') == 'VENTA' else "#9C27B0"
+                tabla_html += f'    <td><span style="background-color:{badge_color}; color:white; padding:5px 8px; border-radius:4px; font-size:11px; white-space:nowrap;">{row.get(col, "")}</span></td>\n'
+            else:
+                tabla_html += f'    <td>{row.get(col, "")}</td>\n'
+
+        acciones = '    <td>'
+        if btnedit:
+            acciones += f'<a data-link="edit_{row["ID DE PROSPECTO"]}" class="btn-floating waves-effect waves-light btn"><i class="material-icons">edit</i></a> '
+        if btndelete:
+            acciones += f'<a data-link="delete_{row["ID DE PROSPECTO"]}" class="btn-floating waves-effect waves-light btn red"><i class="material-icons">delete</i></a>'
+        acciones += '</td>\n'
+        tabla_html += acciones
+        tabla_html += '    </tr>\n'
+
+    tabla_html += '</tbody>\n</table>'
+    return tabla_html
+
+def to_excel(data):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        export_cols = ['ID DE PROSPECTO', 'ASESOR', 'FECHA', 'PROSPECTO', 'TIPO', 'ACCIÓN']
+        available_cols = [c for c in export_cols if c in data.columns]
+        export_df = data[available_cols].copy()
+        export_df.columns = ['ID', 'Asesor', 'Fecha', 'Prospecto', 'Tipo', 'Acción'][:len(available_cols)]
+        for col in ['ID', 'Asesor', 'Prospecto', 'Tipo', 'Acción']:
+            if col in export_df.columns:
+                export_df[col] = export_df[col].astype(str).str.upper()
+        export_df.to_excel(writer, index=False, sheet_name='Prospección')
+    return output.getvalue()
+
+styles = """
+<link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+"""
+st.write(styles, unsafe_allow_html=True)
+
+JS = estilo_tabla_js()
+
+material_table = st.components.v2.component(
+    name="material_table_prospeccion",
+    js=JS,
+    isolate_styles=False,
+)
 
 data = load_data()
 
-if len(data) > 0:
-    # Búsqueda
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.markdown("")
-    with col2:
-        search_query = st.text_input(":material/search: Buscar", value=st.session_state.search_query_prospeccion, 
-                                     placeholder="Buscar por nombre, empresa, asesor...",
-                                     key="search_input_prospeccion")
-        st.session_state.search_query_prospeccion = search_query
-    
-    # Filtrar datos según búsqueda
-    if search_query:
-        mask = data.astype(str).apply(lambda x: x.str.contains(search_query, case=False, na=False)).any(axis=1)
-        filtered_data = data[mask]
-    else:
-        filtered_data = data
-    
-    # Aplicar ordenamiento
-    if st.session_state.sort_column_prospeccion in filtered_data.columns:
-        # Convertir fecha a datetime si es la columna de ordenamiento
-        if st.session_state.sort_column_prospeccion == 'fecha':
-            filtered_data = filtered_data.copy()
-            filtered_data['fecha'] = pd.to_datetime(filtered_data['fecha'])
-        
-        filtered_data = filtered_data.sort_values(
-            by=st.session_state.sort_column_prospeccion,
-            ascending=st.session_state.sort_ascending_prospeccion
-        )
-    
-    # Función para convertir DataFrame a Excel
-    def to_excel(df):
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            # Seleccionar solo las columnas relevantes para exportar
-            export_df = df[['prospecto_id', 'fecha', 'asesor', 'prospecto', 'tipo', 'accion']].copy()
-            export_df.columns = ['ID', 'Fecha', 'Asesor', 'Prospecto', 'Tipo', 'Acción']
-            # Convertir columnas de texto a mayúsculas
-            text_columns = ['ID', 'Asesor', 'Prospecto', 'Tipo', 'Acción']
-            for col in text_columns:
-                export_df[col] = export_df[col].astype(str).str.upper()
-            export_df.to_excel(writer, index=False, sheet_name='Prospección')
-        return output.getvalue()
-    
-    # Botón de descarga
-    col1, col2 = st.columns([5, 1])
-    with col2:
-        excel_data = to_excel(filtered_data)
-        st.download_button(
-            label=":material/download: Descargar Excel",
-            data=excel_data,
-            file_name=f"prospeccion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
-        )
-    
-    st.markdown("")
-    
-    # Paginación
-    items_per_page = 10
-    total_items = len(filtered_data)
-    total_pages = math.ceil(total_items / items_per_page)
-    
-    if st.session_state.page_prospeccion >= total_pages:
-        st.session_state.page_prospeccion = max(0, total_pages - 1)
-    
-    start_idx = st.session_state.page_prospeccion * items_per_page
-    end_idx = min(start_idx + items_per_page, total_items)
-    page_data = filtered_data.iloc[start_idx:end_idx]
-    
-    # Mostrar tabla con acciones
-    if len(page_data) > 0:
-        # Función para cambiar el ordenamiento
-        def toggle_sort(column):
-            if st.session_state.sort_column_prospeccion == column:
-                st.session_state.sort_ascending_prospeccion = not st.session_state.sort_ascending_prospeccion
-            else:
-                st.session_state.sort_column_prospeccion = column
-                st.session_state.sort_ascending_prospeccion = True
-            st.session_state.page_prospeccion = 0  # Resetear a la primera página
-        
-        # Encabezados con botones de ordenamiento
-        header_cols = st.columns([1, 1.5, 2, 1.5, 2.5, 0.7, 0.7])
-        headers = [
-            ('fecha', 'Fecha'),
-            ('asesor', 'Asesor'),
-            ('prospecto', 'Prospecto'),
-            ('tipo', 'Tipo'),
-            ('accion', 'Acción'),
-            ('', ''),
-            ('', '')
+if not data.empty:
+    # ── BÚSQUEDA ──────────────────────────────────────
+    busqueda = st.text_input(
+        ":material/search: Buscar",
+        placeholder="Buscar por prospecto, asesor, tipo...",
+        key="search_input_prospeccion"
+    )
+
+    if busqueda != st.session_state.last_search_prospeccion:
+        st.session_state.page_prospeccion = 0
+        st.session_state.last_search_prospeccion = busqueda
+
+    if busqueda:
+        data_filtrada = data[
+            data['PROSPECTO'].str.contains(busqueda, case=False, na=False) |
+            data['ASESOR'].str.contains(busqueda, case=False, na=False) |
+            data['FECHA'].astype(str).str.contains(busqueda, case=False, na=False) |
+            data['TIPO'].str.contains(busqueda, case=False, na=False) |
+            data['ACCIÓN'].str.contains(busqueda, case=False, na=False)
         ]
-        
-        for idx, (col, (col_name, header)) in enumerate(zip(header_cols, headers)):
-            with col:
-                if header and col_name:
-                    # Determinar el ícono de ordenamiento
-                    if st.session_state.sort_column_prospeccion == col_name:
-                        icon = ":material/arrow_upward:" if st.session_state.sort_ascending_prospeccion else ":material/arrow_downward:"
-                    else:
-                        icon = ":material/unfold_more:"
-                    
-                    if st.button(f"{header} {icon}", key=f"sort_{col_name}", use_container_width=True):
-                        toggle_sort(col_name)
-                        st.rerun()
-        
-        st.markdown("---")
-        
-        for idx, row in page_data.iterrows():
-            cols = st.columns([1, 1.5, 2, 1.5, 2.5, 0.7, 0.7])
-            
-            with cols[0]:
-                fecha_display = row.get('fecha', '')
-                if isinstance(fecha_display, pd.Timestamp):
-                    fecha_display = fecha_display.strftime('%Y-%m-%d')
-                st.text(fecha_display)
-            with cols[1]:
-                if row.get('asesor', '') == "CARLOS ORTIZ":
-                    st.text("CARLOS ORTIZ")
-                elif row.get('asesor', '') == "HUGO ENRIQUE PÉREZ RAMÍREZ":
-                    st.text("HUGO PÉREZ")
-                elif row.get('asesor', '') == "JOSÉ ALVARO MARTÍNEZ ESPEJEL":
-                    st.text("ALVARO MARTÍNEZ")
-                elif row.get('asesor', '') == "MAURICIO GUTIÉRREZ PÉREZ PALMA":
-                    st.text("MAURICIO GUTIÉRREZ")
-                else:
-                    st.text(str(row.get('asesor', '')).upper())
-            with cols[2]:
-                st.text(str(row.get('prospecto', '')).upper())
-            with cols[3]:
-                st.text(str(row.get('tipo', '')).upper())
-            with cols[4]:
-                accion = str(row.get('accion', '')).upper()
-                st.text(accion[:35] + '...' if len(accion) > 35 else accion)
-            with cols[5]:
-                if st.button(":material/edit:", key=f"edit_prosp_{idx}", help="Editar", use_container_width=True):
-                    edit_dialog(idx)
-            with cols[6]:
-                if st.button(":material/delete:", key=f"delete_prosp_{idx}", help="Eliminar", use_container_width=True):
-                    confirm_delete(idx)
-        
-        # Controles de paginación
-        st.markdown("---")
-        col1, col2, col3 = st.columns([1, 2, 1])
-        
-        with col1:
-            if st.button(":material/arrow_back: Anterior", disabled=(st.session_state.page_prospeccion == 0), key="prev_prosp"):
-                st.session_state.page_prospeccion -= 1
-                st.rerun()
-        
-        with col2:
-            st.markdown(f"<center>Página {st.session_state.page_prospeccion + 1} de {total_pages} ({total_items} registros)</center>", 
-                       unsafe_allow_html=True)
-        
-        with col3:
-            if st.button("Siguiente :material/arrow_forward:", disabled=(st.session_state.page_prospeccion >= total_pages - 1), key="next_prosp"):
-                st.session_state.page_prospeccion += 1
-                st.rerun()
     else:
-        st.info("No se encontraron resultados para la búsqueda.")
+        data_filtrada = data
+
+    data_filtrada = data_filtrada.copy()
+    data_filtrada['FECHA'] = data_filtrada['FECHA'].fillna("")
+
+    # ── PAGINACIÓN ────────────────────────────────────
+    total_items = len(data_filtrada)
+    total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
+
+    if st.session_state.page_prospeccion >= total_pages:
+        st.session_state.page_prospeccion = total_pages - 1
+
+    start_idx = st.session_state.page_prospeccion * ITEMS_PER_PAGE
+    end_idx = min(start_idx + ITEMS_PER_PAGE, total_items)
+    data_pagina = data_filtrada.iloc[start_idx:end_idx]
+
+    # ── RENDER TABLA ──────────────────────────────────
+    paragraph_html = generar_tabla(data_pagina, btnedit=True, btndelete=True)
+
+    resultado = material_table(
+        data=paragraph_html,
+        on_clicked_change=lambda: None,
+        key=f"table_prospeccion_{st.session_state.page_prospeccion}_{busqueda}"
+    )
+
+    # ── CONTROLES DE PAGINACIÓN ───────────────────────
+    st.markdown("")
+    col_prev, col_info, col_next = st.columns([1, 3, 1])
+
+    with col_prev:
+        if st.button(
+            ":material/arrow_back: Anterior",
+            disabled=(st.session_state.page_prospeccion == 0),
+            use_container_width=True,
+            key="btn_prev_prosp"
+        ):
+            st.session_state.page_prospeccion -= 1
+            st.rerun()
+
+    with col_info:
+        st.markdown(
+            f"<div style='text-align:center; padding-top:8px; color:#666;'>"
+            f"Página <b>{st.session_state.page_prospeccion + 1}</b> de <b>{total_pages}</b>"
+            f"&nbsp;·&nbsp; {total_items} registros"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+
+    with col_next:
+        if st.button(
+            "Siguiente :material/arrow_forward:",
+            disabled=(st.session_state.page_prospeccion >= total_pages - 1),
+            use_container_width=True,
+            key="btn_next_prosp"
+        ):
+            st.session_state.page_prospeccion += 1
+            st.rerun()
+
+    excel_data = to_excel(data_filtrada)
+    st.download_button(
+        label=":material/download: Descargar Excel",
+        data=excel_data,
+        file_name=f"prospeccion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        width='stretch'
+    )
+
+    # ── MANEJAR CLICKS DE BOTONES ─────────────────────
+    if resultado and resultado.get("clicked"):
+        clicked = resultado["clicked"]
+
+        if clicked.startswith("edit_"):
+            prospecto_id = clicked.replace("edit_", "")
+            match = data[data['ID DE PROSPECTO'] == prospecto_id]
+            if not match.empty:
+                edit_dialog(match.index[0])
+
+        elif clicked.startswith("delete_"):
+            prospecto_id = clicked.replace("delete_", "")
+            match = data[data['ID DE PROSPECTO'] == prospecto_id]
+            if not match.empty:
+                confirm_delete(match.index[0])
+
 else:
     st.info(":material/note: No hay prospectos registrados. Agrega tu primer prospecto usando el formulario de arriba.")
