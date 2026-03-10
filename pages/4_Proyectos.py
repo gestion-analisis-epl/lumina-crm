@@ -8,8 +8,6 @@ import random
 import time
 from io import BytesIO
 import requests
-from st_aggrid import AgGrid, GridOptionsBuilder
-from st_aggrid.shared import JsCode
 
 from utils.opciones import ASESORES
 
