@@ -26,17 +26,7 @@ CUSTOM_CSS = """
     .stMetric label > div {
         justify-content: center !important;
     }
-    .stMetric [data-testid="stMetricLabel"] {
-        justify-content: center !important;
-    }
-    .stMetric [data-testid="stMetricLabel"] > div {
-        justify-content: center !important;
-    }
-    .stMetric [data-testid="stMetricDelta"] > div {
-        width: fit-content !important;
-        margin: 0 auto !important;
-    }
-    
+
     .stDateInput {
         background: white; 
         border-radius: 16px; 
