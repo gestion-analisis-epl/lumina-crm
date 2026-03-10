@@ -133,33 +133,40 @@ try:
     if len(proyectos_filtrados) > 0:
         # Seleccionar columnas importantes
         columnas_mostrar = []
-        for col in ['fecha', 'asesor', 'proyecto/cotización', 'cliente', 'total', 'status']:
+        for col in ['fecha_cotizacion', 'asesor', 'proyecto/cotización', 'cliente', 'total', 'status', 'motivo_perdida']:
             if col in proyectos_filtrados.columns:
                 columnas_mostrar.append(col)
         df = proyectos_filtrados[columnas_mostrar]
+        col_num_proyectos = st.columns([1,2,2])
+
+        with col_num_proyectos[0]:
+            proyectos_mostrar = st.number_input("Proyectos a mostrar", min_value=1, step=1, value=10)
+
         if columnas_mostrar:
             st.dataframe(
-                df.head(5), 
+                df.head(proyectos_mostrar), 
                 width='stretch',
                 hide_index=True,
                 column_config={
-                    "fecha": st.column_config.DateColumn("Fecha", format="DD/MM/YYYY"),
+                    "fecha_cotizacion": st.column_config.DateColumn("Fecha de cotización", format="DD/MM/YYYY"),
                     "asesor": "Asesor",
                     "proyecto/cotización": "Proyecto/Cotización",
                     "cliente": "Cliente",
                     "total": st.column_config.NumberColumn("Total", format="$ %.2f"),
-                    "status": "Status"
+                    "status": "Status",
+                    "motivo_perdida": "Motivo de Pérdida"
                 }
             )
         else:
-            st.dataframe(proyectos_filtrados.head(5), width='stretch', hide_index=True,
+            st.dataframe(proyectos_filtrados.head(proyectos_mostrar), width='stretch', hide_index=True,
             column_config={
                 "fecha": st.column_config.DateColumn("Fecha", format="DD/MM/YYYY"),
                 "asesor": "Asesor",
                 "proyecto/cotización": "Proyecto/Cotización",
                 "cliente": "Cliente",
                 "total": st.column_config.NumberColumn("Total", format="$ %.2f"),
-                "status": "Status"
+                "status": "Status",
+                'motivo_perdida': 'Motivo de Pérdida'
             })
     else:
         st.info("No hay proyectos para mostrar")

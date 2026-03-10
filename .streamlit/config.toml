@@ -52,4 +52,4 @@ baseRadius = "small"
 buttonRadius = "large"
 # dataframeBorderColor
 # dataframeBorderColor
-dataframeHeaderBackgroundColor = "#b8d4eb"
+dataframeHeaderBackgroundColor = "#f0f0f0ff"
