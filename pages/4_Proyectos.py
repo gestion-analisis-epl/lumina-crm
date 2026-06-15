@@ -142,15 +142,16 @@ def edit_dialog(idx):
     status_index = status_options.index(status_actual) if status_actual in status_options else 2
     status_edit = st.selectbox("Status", status_options, index=status_index, key=f"status_edit_{idx}")
 
-    with st.form("form_editar_proyecto"):
+    with st.container():
         col1, col2, col3 = st.columns(3)
 
         with col1:
             asesor_edit = st.selectbox(
                 "Selecciona un asesor de ventas", ASESORES,
-                index=ASESORES.index(row.get('ASESOR', '')) if row.get('ASESOR', '') in ASESORES else None
+                index=ASESORES.index(row.get('ASESOR', '')) if row.get('ASESOR', '') in ASESORES else None,
+                key=f"asesor_edit_{idx}"
             )
-            cotizacion_edit = st.text_input("No. de Cotización", value=row.get('COTIZACIÓN', ''))
+            cotizacion_edit = st.text_input("No. de Cotización", value=row.get('COTIZACIÓN', ''), key=f"cotizacion_edit_{idx}")
             fecha_cot_value = row.get('FECHA DE COTIZACIÓN', None)
             if fecha_cot_value and isinstance(fecha_cot_value, str):
                 try:
@@ -160,8 +161,8 @@ def edit_dialog(idx):
             fecha_cotizacion_edit = st.date_input("Fecha de Cotización", value=fecha_cot_value, key=f"fecha_edit_{idx}")
 
         with col2:
-            proyecto_edit = st.text_input("Proyecto *", value=row.get('PROYECTO', ''))
-            cliente_edit = st.text_input("Cliente *", value=row.get('CLIENTE', ''))
+            proyecto_edit = st.text_input("Proyecto *", value=row.get('PROYECTO', ''), key=f"proyecto_edit_{idx}")
+            cliente_edit = st.text_input("Cliente *", value=row.get('CLIENTE', ''), key=f"cliente_edit_{idx}")
 
         with col3:
             motivo_perdida_edit = ""
@@ -169,7 +170,7 @@ def edit_dialog(idx):
                 motivo_opciones = ["PRECIO", "STOCK/INVENTARIO", "OTRO"]
                 motivo_actual = row.get('MOTIVO DE PÉRDIDA', '')
                 motivo_index = motivo_opciones.index(motivo_actual) if motivo_actual in motivo_opciones else 0
-                motivo_perdida_edit = st.selectbox("Motivo de Pérdida *", motivo_opciones, index=motivo_index)
+                motivo_perdida_edit = st.selectbox("Motivo de Pérdida *", motivo_opciones, index=motivo_index, key=f"motivo_edit_{idx}")
 
             fecha_facturacion_edit = None
             if status_edit == "GANADO":
@@ -185,15 +186,15 @@ def edit_dialog(idx):
                 )
 
             total_edit = st.number_input("Total ($) *", min_value=0.0, step=0.01,
-                                         value=float(row.get('TOTAL', 0)))
+                                         value=float(row.get('TOTAL', 0)), key=f"total_edit_{idx}")
 
-        observaciones_edit = st.text_area("Observaciones", value=row.get('OBSERVACIONES', ''))
+        observaciones_edit = st.text_area("Observaciones", value=row.get('OBSERVACIONES', ''), key=f"obs_edit_{idx}")
 
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
-            guardar = st.form_submit_button(":material/save: Guardar Cambios", use_container_width=True)
+            guardar = st.button(":material/save: Guardar Cambios", use_container_width=True, type="primary", key=f"guardar_edit_{idx}")
         with col_btn2:
-            cancelar = st.form_submit_button(":material/cancel: Cancelar", use_container_width=True)
+            cancelar = st.button(":material/cancel: Cancelar", use_container_width=True, key=f"cancelar_edit_{idx}")
 
         if guardar:
             if asesor_edit and proyecto_edit and cliente_edit:

@@ -30,8 +30,7 @@ section[data-testid="stSidebar"] label {
 </style>
 """, unsafe_allow_html=True)
 
-with st.sidebar:
-    img = st.image("img/logo lumina blanco.png", width='stretch')
+st.logo("img/logo lumina blanco.png", size="large")
 
 dashboard_page = st.Page(
     page="pages/1_Dashboard.py",
