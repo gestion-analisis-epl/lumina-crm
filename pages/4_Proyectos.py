@@ -181,7 +181,7 @@ def edit_dialog(idx):
                     except:
                         fecha_fact_value = None
                 fecha_facturacion_edit = st.date_input(
-                    "Fecha de Facturación *", value=fecha_fact_value,
+                    "Fecha de Facturación *", value=fecha_fact_value if fecha_fact_value else date.today(),
                     key=f"fecha_fact_edit_{idx}", help="Fecha en que se facturó el proyecto"
                 )
 
@@ -255,7 +255,7 @@ with st.container():
         fecha_facturacion = None
         if status == "GANADO":
             fecha_facturacion = st.date_input(
-                "Fecha de Facturación *", value=None,
+                "Fecha de Facturación *", value=date.today(),
                 key="fecha_facturacion_nueva", help="Fecha en que se facturó el proyecto"
             )
 
