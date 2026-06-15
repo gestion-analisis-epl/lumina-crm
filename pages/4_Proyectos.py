@@ -174,14 +174,15 @@ def edit_dialog(idx):
 
             fecha_facturacion_edit = None
             if status_edit == "GANADO":
-                fecha_fact_value = row.get('FECHA DE FACTURACIÓN', None)
-                if fecha_fact_value and isinstance(fecha_fact_value, str):
+                fecha_fact_raw = row.get('FECHA DE FACTURACIÓN', None)
+                fecha_fact_value = None
+                if fecha_fact_raw and not pd.isna(fecha_fact_raw) and isinstance(fecha_fact_raw, str):
                     try:
-                        fecha_fact_value = datetime.strptime(fecha_fact_value, '%Y-%m-%d').date()
-                    except:
-                        fecha_fact_value = None
+                        fecha_fact_value = datetime.strptime(fecha_fact_raw, '%Y-%m-%d').date()
+                    except (ValueError, TypeError):
+                        pass
                 fecha_facturacion_edit = st.date_input(
-                    "Fecha de Facturación *", value=fecha_fact_value if fecha_fact_value else date.today(),
+                    "Fecha de Facturación *", value=fecha_fact_value or date.today(),
                     key=f"fecha_fact_edit_{idx}", help="Fecha en que se facturó el proyecto"
                 )
 
