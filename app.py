@@ -27,6 +27,26 @@ section[data-testid="stSidebar"] select {
 section[data-testid="stSidebar"] label {
     color: #cfd8dc !important;
 }
+
+/* ── SECTION HEADERS ────────────────────────── */
+[data-testid="stMarkdownContainer"] h4 {
+    color: #003057;
+    font-weight: 600;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 5px;
+    margin-bottom: 0.5rem;
+}
+
+[data-testid="stMarkdownContainer"] h3 {
+    color: #003057;
+    font-weight: 700;
+}
+
+/* ── PAGE TITLE ─────────────────────────────── */
+section[data-testid="stMain"] h1 {
+    color: #003057;
+    font-weight: 700;
+}
 </style>
 """, unsafe_allow_html=True)
 

@@ -1,9 +1,9 @@
 import streamlit as st
 from styles.tablejs import estilo_tabla_js
+from styles.table_helpers import avatar_html, ASESOR_CORTO
 from utils.supabase_client import get_supabase_client
 import pandas as pd
 from datetime import datetime, date
-import math
 import random
 import time
 from io import BytesIO
@@ -13,17 +13,36 @@ from utils.opciones import ASESORES
 st.set_page_config(page_title="Prospección", page_icon="🎯", layout="wide")
 
 st.markdown("""
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
     .stDataFrame { border-radius: 10px; }
-    .edit-btn { color: #2196F3; cursor: pointer; }
-    .delete-btn { color: #f44336; cursor: pointer; }
     .search-box { margin-bottom: 20px; }
-    table { border-collapse: collapse; width: 100%; }
-    th { background-color: #f5f5f5; padding: 12px; text-align: left; }
-    td { padding: 10px; border-bottom: 1px solid #ddd; }
-    tr:hover { background-color: #f9f9f9; }
+
+    .table-card {
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    table { border-collapse: collapse; width: 100%; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size: 0.85rem; }
+    th { background-color: #f8f9fa; color: #495057; padding: 12px 14px; text-align: left; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #dee2e6; }
+    td { padding: 10px 14px; border-bottom: 1px solid #f0f4f8; color: #212529; }
+    tbody tr:nth-child(even) td { background-color: #f8f9fa; }
+    tr:hover td { background-color: #eef1f4; }
+
+    .badge-soft { display:inline-block; padding: 3px 11px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .badge-soft-primary { background:#e7f1ff; color:#0d6efd; }
+    .badge-soft-purple  { background:#f3e8ff; color:#9333ea; }
+
+    .btn-icon {
+        display:inline-flex; align-items:center; justify-content:center;
+        width: 30px; height: 30px; border-radius: 6px;
+        border: 1px solid #dee2e6; color: #495057; background: #fff;
+        margin-right: 4px; cursor: pointer; text-decoration:none;
+        transition: background .15s, border-color .15s, color .15s;
+    }
+    .btn-icon:hover { background:#e7f1ff; border-color:#9ec5fe; color:#0d6efd; }
+    .btn-icon-danger:hover { background:#f8d7da; border-color:#f1aeb5; color:#dc3545; }
+    .btn-icon svg { width:15px; height:15px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -32,22 +51,12 @@ st.title(":material/emoji_events: Gestión de Prospección")
 client = get_supabase_client()
 
 # ── SESSION STATE ─────────────────────────────────────
-if 'page_prospeccion' not in st.session_state:
-    st.session_state.page_prospeccion = 0
 if 'search_query_prospeccion' not in st.session_state:
     st.session_state.search_query_prospeccion = ""
 if 'show_edit_dialog_prospeccion' not in st.session_state:
     st.session_state.show_edit_dialog_prospeccion = False
 if 'edit_index_prospeccion' not in st.session_state:
     st.session_state.edit_index_prospeccion = None
-if 'sort_column_prospeccion' not in st.session_state:
-    st.session_state.sort_column_prospeccion = 'fecha'
-if 'sort_ascending_prospeccion' not in st.session_state:
-    st.session_state.sort_ascending_prospeccion = False
-if 'last_search_prospeccion' not in st.session_state:
-    st.session_state.last_search_prospeccion = ""
-
-ITEMS_PER_PAGE = 15
 
 # ── DATA ──────────────────────────────────────────────
 @st.cache_data(ttl=5)
@@ -223,9 +232,12 @@ st.markdown("---")
 # ── TABLA ─────────────────────────────────────────────
 st.markdown("#### :material/list: Lista de Prospectos")
 
+ICON_EDIT = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zm.708 1.707L11.207 3.5l1.293 1.293 1.647-1.647zM10.5 4.207 3.5 11.207v.5h.5l7-7z"/></svg>'
+ICON_DELETE = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>'
+
 def generar_tabla(data, btnedit=None, btndelete=None):
     columnas_visibles = [col for col in data.columns if col not in ['id', 'ID DE PROSPECTO', 'created_at', 'updated_at']]
-    tabla_html = '<table class="responsive-table">\n<thead>\n<tr>\n'
+    tabla_html = '<div class="table-card"><table class="responsive-table">\n<thead>\n<tr>\n'
 
     for col in columnas_visibles:
         tabla_html += f'    <th>{col}</th>\n'
@@ -236,21 +248,24 @@ def generar_tabla(data, btnedit=None, btndelete=None):
 
         for col in columnas_visibles:
             if col == 'TIPO':
-                badge_color = "#2196F3" if row.get('TIPO', '') == 'VENTA' else "#9C27B0"
-                tabla_html += f'    <td><span style="background-color:{badge_color}; color:white; padding:5px 8px; border-radius:4px; font-size:11px; white-space:nowrap;">{row.get(col, "")}</span></td>\n'
+                badge_class = "badge-soft-primary" if row.get('TIPO', '') == 'VENTA' else "badge-soft-purple"
+                tabla_html += f'    <td data-value="{row.get(col, "")}"><span class="badge-soft {badge_class}">{row.get(col, "")}</span></td>\n'
+            elif col == 'ASESOR':
+                nombre = ASESOR_CORTO.get(row.get('ASESOR', ''), row.get('ASESOR', ''))
+                tabla_html += f'    <td data-value="{nombre}">{avatar_html(nombre)}</td>\n'
             else:
                 tabla_html += f'    <td>{row.get(col, "")}</td>\n'
 
         acciones = '    <td>'
         if btnedit:
-            acciones += f'<a data-link="edit_{row["ID DE PROSPECTO"]}" class="btn-floating waves-effect waves-light btn"><i class="material-icons">edit</i></a> '
+            acciones += f'<a data-link="edit_{row["ID DE PROSPECTO"]}" class="btn-icon" title="Editar">{ICON_EDIT}</a>'
         if btndelete:
-            acciones += f'<a data-link="delete_{row["ID DE PROSPECTO"]}" class="btn-floating waves-effect waves-light btn red"><i class="material-icons">delete</i></a>'
+            acciones += f'<a data-link="delete_{row["ID DE PROSPECTO"]}" class="btn-icon btn-icon-danger" title="Eliminar">{ICON_DELETE}</a>'
         acciones += '</td>\n'
         tabla_html += acciones
         tabla_html += '    </tr>\n'
 
-    tabla_html += '</tbody>\n</table>'
+    tabla_html += '</tbody>\n</table></div>'
     return tabla_html
 
 def to_excel(data):
@@ -266,12 +281,6 @@ def to_excel(data):
         export_df.to_excel(writer, index=False, sheet_name='Prospección')
     return output.getvalue()
 
-styles = """
-<link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-"""
-st.write(styles, unsafe_allow_html=True)
-
 JS = estilo_tabla_js()
 
 material_table = st.components.v2.component(
@@ -283,16 +292,12 @@ material_table = st.components.v2.component(
 data = load_data()
 
 if not data.empty:
-    # ── BÚSQUEDA ──────────────────────────────────────
+    # ── BÚSQUEDA (server-side, sobre el dataset completo) ──
     busqueda = st.text_input(
         ":material/search: Buscar",
         placeholder="Buscar por prospecto, asesor, tipo...",
         key="search_input_prospeccion"
     )
-
-    if busqueda != st.session_state.last_search_prospeccion:
-        st.session_state.page_prospeccion = 0
-        st.session_state.last_search_prospeccion = busqueda
 
     if busqueda:
         data_filtrada = data[
@@ -308,58 +313,17 @@ if not data.empty:
     data_filtrada = data_filtrada.copy()
     data_filtrada['FECHA'] = data_filtrada['FECHA'].fillna("")
 
-    # ── PAGINACIÓN ────────────────────────────────────
-    total_items = len(data_filtrada)
-    total_pages = max(1, math.ceil(total_items / ITEMS_PER_PAGE))
-
-    if st.session_state.page_prospeccion >= total_pages:
-        st.session_state.page_prospeccion = total_pages - 1
-
-    start_idx = st.session_state.page_prospeccion * ITEMS_PER_PAGE
-    end_idx = min(start_idx + ITEMS_PER_PAGE, total_items)
-    data_pagina = data_filtrada.iloc[start_idx:end_idx]
-
-    # ── RENDER TABLA ──────────────────────────────────
-    paragraph_html = generar_tabla(data_pagina, btnedit=True, btndelete=True)
+    # ── RENDER TABLA ───────────────────────────────────
+    # Se manda TODO data_filtrada (no una página): los filtros de header y el
+    # orden operan en el navegador sobre el 100% de las filas, y la paginación
+    # (Anterior/Siguiente) se calcula en JS después de aplicarlos.
+    paragraph_html = generar_tabla(data_filtrada, btnedit=True, btndelete=True)
 
     resultado = material_table(
         data=paragraph_html,
         on_clicked_change=lambda: None,
-        key=f"table_prospeccion_{st.session_state.page_prospeccion}_{busqueda}"
+        key=f"table_prospeccion_{busqueda}"
     )
-
-    # ── CONTROLES DE PAGINACIÓN ───────────────────────
-    st.markdown("")
-    col_prev, col_info, col_next = st.columns([1, 3, 1])
-
-    with col_prev:
-        if st.button(
-            ":material/arrow_back: Anterior",
-            disabled=(st.session_state.page_prospeccion == 0),
-            use_container_width=True,
-            key="btn_prev_prosp"
-        ):
-            st.session_state.page_prospeccion -= 1
-            st.rerun()
-
-    with col_info:
-        st.markdown(
-            f"<div style='text-align:center; padding-top:8px; color:#666;'>"
-            f"Página <b>{st.session_state.page_prospeccion + 1}</b> de <b>{total_pages}</b>"
-            f"&nbsp;·&nbsp; {total_items} registros"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-
-    with col_next:
-        if st.button(
-            "Siguiente :material/arrow_forward:",
-            disabled=(st.session_state.page_prospeccion >= total_pages - 1),
-            use_container_width=True,
-            key="btn_next_prosp"
-        ):
-            st.session_state.page_prospeccion += 1
-            st.rerun()
 
     excel_data = to_excel(data_filtrada)
     st.download_button(
@@ -387,4 +351,14 @@ if not data.empty:
                 confirm_delete(match.index[0])
 
 else:
-    st.info(":material/note: No hay prospectos registrados. Agrega tu primer prospecto usando el formulario de arriba.")
+    st.markdown("""
+    <div style="text-align:center;padding:52px 24px;border:2px dashed #cbd5e1;
+                border-radius:14px;background:#f8fafc;margin:24px 0;">
+        <div style="font-size:3.2rem;margin-bottom:12px;line-height:1;">🎯</div>
+        <div style="font-size:1.1rem;font-weight:600;color:#334155;margin-bottom:8px;">
+            No hay prospectos registrados
+        </div>
+        <div style="font-size:.9rem;color:#94a3b8;">
+            Agrega tu primer prospecto usando el formulario de arriba.
+        </div>
+    </div>""", unsafe_allow_html=True)

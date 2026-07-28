@@ -169,7 +169,17 @@ try:
                 'motivo_perdida': 'Motivo de Pérdida'
             })
     else:
-        st.info("No hay proyectos para mostrar")
+        st.markdown("""
+        <div style="text-align:center;padding:40px 24px;border:2px dashed #cbd5e1;
+                    border-radius:14px;background:#f8fafc;margin:16px 0;">
+            <div style="font-size:2.8rem;margin-bottom:10px;line-height:1;">📊</div>
+            <div style="font-size:1rem;font-weight:600;color:#334155;margin-bottom:6px;">
+                No hay proyectos para mostrar
+            </div>
+            <div style="font-size:.85rem;color:#94a3b8;">
+                Ajusta los filtros de fecha o asesor para ver resultados.
+            </div>
+        </div>""", unsafe_allow_html=True)
 
 except Exception as e:
     st.error(f"Error al cargar datos: {str(e)}")

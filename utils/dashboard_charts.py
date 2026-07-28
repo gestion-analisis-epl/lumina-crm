@@ -176,10 +176,16 @@ def mostrar_graficos(total_citas, total_prospectos, total_proyectos):
             datos_dist,
             values='Cantidad',
             names='Categoría',
-            color_discrete_sequence=['#FF6B6B', '#4ECDC4', '#45B7D1']
+            color_discrete_sequence=['#003057', '#005fa3', '#0093d0']
+        )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#334155'),
+            margin=dict(l=20, r=20, t=40, b=20)
         )
         st.plotly_chart(fig, use_container_width=True)
-    
+
     with col2:
         st.markdown("#### :material/trending_up: Comparativa de Módulos")
         fig = px.bar(
@@ -187,8 +193,17 @@ def mostrar_graficos(total_citas, total_prospectos, total_proyectos):
             x='Categoría',
             y='Cantidad',
             color='Categoría',
-            color_discrete_sequence=['#FF6B6B', '#4ECDC4', '#45B7D1']
+            color_discrete_sequence=['#003057', '#005fa3', '#0093d0']
         )
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#334155'),
+            showlegend=False,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        fig.update_xaxes(showgrid=False)
+        fig.update_yaxes(showgrid=True, gridcolor='rgba(0,0,0,0.06)')
         st.plotly_chart(fig, use_container_width=True)
 
 
@@ -231,7 +246,13 @@ def mostrar_grafico_proyectos_estado(proyectos_filtrados):
         )
         
         fig.update_traces(textposition='inside', textinfo='percent+label')
-        
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#334155'),
+            margin=dict(l=20, r=20, t=40, b=20),
+            legend=dict(orientation='h', yanchor='bottom', y=-0.2)
+        )
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No hay proyectos para mostrar la distribución por estado")
@@ -285,37 +306,35 @@ def mostrar_grafico_citas_por_mes(citas_filtradas):
                 x='mes',
                 y='Cantidad',
                 title='Evolución de Citas por Mes',
-                labels={'mes': 'mes', 'Cantidad': 'Número de Citas'},
-                color_discrete_sequence=['#4ECDC4']
+                labels={'mes': 'Mes', 'Cantidad': 'Número de Citas'},
+                color_discrete_sequence=['#003057']
             )
-            
-            # Personalizar el gráfico con líneas suavizadas y degradado
+
             fig.update_traces(
-                line_shape='spline',  # Líneas suavizadas
+                line_shape='spline',
                 fillgradient=dict(
                     type='vertical',
                     colorscale=[
-                        [0, 'rgba(78, 205, 196, 0.1)'],  # Color más transparente en la parte inferior
-                        [1, 'rgba(78, 205, 196, 0.6)']   # Color más opaco en la parte superior
+                        [0, 'rgba(0, 48, 87, 0.05)'],
+                        [1, 'rgba(0, 48, 87, 0.35)']
                     ]
                 ),
-                line=dict(width=3, color='#4ECDC4')
+                line=dict(width=3, color='#003057')
             )
-            
-            # Personalizar el layout
+
             fig.update_layout(
-                xaxis_title='mes',
+                xaxis_title='',
                 yaxis_title='Número de Citas',
                 hovermode='x unified',
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(size=12),
-                margin=dict(l=20, r=20, t=40, b=20)
+                font=dict(size=12, color='#334155'),
+                margin=dict(l=20, r=20, t=40, b=20),
+                title_font=dict(color='#003057', size=14)
             )
-            
-            # Personalizar los ejes
-            fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
-            fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
+
+            fig.update_xaxes(showgrid=False, tickangle=-30)
+            fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(0,0,0,0.06)')
             
             st.plotly_chart(fig, use_container_width=True)
         else:
