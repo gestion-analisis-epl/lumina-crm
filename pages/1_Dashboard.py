@@ -87,25 +87,25 @@ try:
     
     with col1:
         st.metric(
-            label="Citas",
+            label=":material/event: Citas",
             value=metricas['total_citas']
         )
-    
+
     with col2:
         st.metric(
-            label="Prospectos",
+            label=":material/group: Prospectos",
             value=metricas['total_prospectos']
         )
-    
+
     with col3:
         st.metric(
-            label="Proyectos/Cotizaciones",
+            label=":material/folder: Proyectos/Cotizaciones",
             value=metricas['total_proyectos']
         )
-    
+
     with col4:
         st.metric(
-            label="Ticket Promedio",
+            label=":material/receipt: Ticket Promedio",
             value=f"${metricas['ticket_promedio']:,.2f}"
         )
     

@@ -1,12 +1,11 @@
 import streamlit as st
 from styles.tablejs import estilo_tabla_js
-from styles.table_helpers import avatar_html, ASESOR_CORTO
+from styles.table_helpers import avatar_html, ASESOR_CORTO, dataframe_to_excel
 from utils.supabase_client import get_supabase_client
 import pandas as pd
 from datetime import datetime, date
 import random
 import time
-from io import BytesIO
 import requests
 
 from utils.opciones import ASESORES
@@ -24,7 +23,7 @@ st.markdown("""
         overflow: hidden;
         box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    table { border-collapse: collapse; width: 100%; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size: 0.85rem; }
+    table { border-collapse: collapse; width: 100%; font-family: 'Inter',sans-serif; font-size: 0.85rem; }
     th { background-color: #f8f9fa; color: #495057; padding: 12px 14px; text-align: left; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #dee2e6; }
     td { padding: 10px 14px; border-bottom: 1px solid #f0f4f8; color: #212529; }
     tbody tr:nth-child(even) td { background-color: #f8f9fa; }
@@ -314,6 +313,10 @@ ICON_CHECK  = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.854 3.6
 ICON_EDIT   = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zm.708 1.707L11.207 3.5l1.293 1.293 1.647-1.647zM10.5 4.207 3.5 11.207v.5h.5l7-7z"/></svg>'
 ICON_DELETE = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>'
 
+ICON_CLOCK  = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.3"/><path d="M8 4.7V8l2.4 1.4"/></svg>'
+ICON_CANCEL = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>'
+ICON_TARGET = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="8" r="6.3"/><circle cx="8" cy="8" r="3.6"/><circle cx="8" cy="8" r="1.1" fill="currentColor" stroke="none"/></svg>'
+
 STATUS_BADGE = {
     'PERDIDO':    'badge-soft-danger',
     'GANADO':     'badge-soft-success',
@@ -369,15 +372,13 @@ material_table = st.components.v2.component(
 data = load_data()
 
 def to_excel(data):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        export_df = data[['ID DE PROYECTO', 'ASESOR', 'PROYECTO', 'CLIENTE', 'STATUS', 'TOTAL', 'MOTIVO DE PÉRDIDA', 'FECHA DE COTIZACIÓN', 'FECHA DE FACTURACIÓN']].copy()
-        export_df.columns = ['ID', 'Asesor', 'Proyecto', 'Cliente', 'Status', 'Total', 'Motivo de Pérdida', 'Fecha de Cotización', 'Fecha de Facturación']
-        text_columns = ['ID', 'Asesor', 'Proyecto', 'Cliente', 'Status', 'Motivo de Pérdida']
-        for col in text_columns:
-            export_df[col] = export_df[col].astype(str).str.upper()
-        export_df.to_excel(writer, index=False, sheet_name='Proyectos')
-    return output.getvalue()
+    export_df = data[['ID DE PROYECTO', 'ASESOR', 'PROYECTO', 'CLIENTE', 'STATUS', 'TOTAL', 'MOTIVO DE PÉRDIDA', 'FECHA DE COTIZACIÓN', 'FECHA DE FACTURACIÓN']].copy()
+    export_df.columns = ['ID', 'Asesor', 'Proyecto', 'Cliente', 'Status', 'Total', 'Motivo de Pérdida', 'Fecha de Cotización', 'Fecha de Facturación']
+    text_columns = ['ID', 'Asesor', 'Proyecto', 'Cliente', 'Status', 'Motivo de Pérdida']
+    for col in text_columns:
+        export_df[col] = export_df[col].astype(str).str.upper()
+    export_df['Total'] = export_df['Total'].fillna(0).astype(float)
+    return dataframe_to_excel(export_df, sheet_name='Proyectos', currency_cols=['Total'])
 
 
 if not data.empty:
@@ -388,38 +389,58 @@ if not data.empty:
     total_oport = len(en_proceso) + len(ganado)
     tasa = (len(ganado) / total_oport * 100) if total_oport > 0 else 0
 
-    def _pipeline_card(color, label, count, total_val):
-        return f"""<div style="background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.07);
-            border:1px solid #e2e8f0;border-left:4px solid {color};padding:20px 16px;
-            text-align:center;height:110px;display:flex;flex-direction:column;justify-content:center;">
-            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7a93a6;margin-bottom:6px;">{label}</div>
-            <div style="font-size:1.6rem;font-weight:700;color:{color};line-height:1.1;">{count}</div>
-            <div style="font-size:.9rem;font-weight:600;color:#64748b;margin-top:3px;">${total_val:,.0f}</div>
+    def _pipeline_card(gradient, label, icon, value, caption):
+        return f"""<div style="position:relative;overflow:hidden;border-radius:16px;
+            background:linear-gradient(135deg,{gradient[0]} 0%,{gradient[1]} 100%);
+            padding:20px 20px 18px 20px;min-height:142px;color:#fff;
+            box-shadow:0 10px 22px rgba(0,0,0,.14);
+            display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="position:absolute;width:120px;height:120px;border-radius:50%;
+                background:rgba(255,255,255,.13);top:-40px;right:-30px;"></div>
+            <div style="position:absolute;width:80px;height:80px;border-radius:50%;
+                background:rgba(255,255,255,.1);bottom:-24px;right:28px;"></div>
+            <div style="position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <span style="font-size:.85rem;font-weight:600;">{label}</span>
+                <span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+                    width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.18);">
+                    <span style="width:16px;height:16px;display:inline-flex;">{icon}</span>
+                </span>
+            </div>
+            <div style="position:relative;z-index:1;font-size:1.7rem;font-weight:700;line-height:1.15;margin-top:12px;">{value}</div>
+            <div style="position:relative;z-index:1;font-size:.78rem;opacity:.85;margin-top:6px;">{caption}</div>
         </div>"""
 
     pc1, pc2, pc3, pc4 = st.columns(4)
     with pc1:
-        st.markdown(_pipeline_card("#FFA500", "⏳ En Proceso", len(en_proceso), en_proceso['TOTAL'].fillna(0).sum()), unsafe_allow_html=True)
+        st.markdown(_pipeline_card(
+            ("#D97706", "#FBBF24"), "En Proceso", ICON_CLOCK,
+            len(en_proceso), f"${en_proceso['TOTAL'].fillna(0).sum():,.0f}"
+        ), unsafe_allow_html=True)
     with pc2:
-        st.markdown(_pipeline_card("#2ECC71", "✅ Ganado", len(ganado), ganado['TOTAL'].fillna(0).sum()), unsafe_allow_html=True)
+        st.markdown(_pipeline_card(
+            ("#059669", "#34D399"), "Ganado", ICON_CHECK,
+            len(ganado), f"${ganado['TOTAL'].fillna(0).sum():,.0f}"
+        ), unsafe_allow_html=True)
     with pc3:
-        st.markdown(_pipeline_card("#E74C3C", "❌ Perdido", len(perdido), perdido['TOTAL'].fillna(0).sum()), unsafe_allow_html=True)
+        st.markdown(_pipeline_card(
+            ("#DC2626", "#F87171"), "Perdido", ICON_CANCEL,
+            len(perdido), f"${perdido['TOTAL'].fillna(0).sum():,.0f}"
+        ), unsafe_allow_html=True)
     with pc4:
-        st.markdown(f"""<div style="background:linear-gradient(135deg,#003057 0%,#005fa3 100%);border-radius:12px;
-            box-shadow:0 2px 8px rgba(0,48,87,.18);padding:20px 16px;text-align:center;color:white;
-            height:110px;display:flex;flex-direction:column;justify-content:center;">
-            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;opacity:.75;margin-bottom:6px;">🎯 Conversión</div>
-            <div style="font-size:1.8rem;font-weight:700;line-height:1.1;">{tasa:.1f}%</div>
-            <div style="font-size:.8rem;opacity:.7;margin-top:3px;">{len(ganado)} ganados / {total_oport} oport.</div>
-        </div>""", unsafe_allow_html=True)
+        st.markdown(_pipeline_card(
+            ("#003057", "#0069b4"), "Conversión", ICON_TARGET,
+            f"{tasa:.1f}%", f"{len(ganado)} ganados / {total_oport} oport."
+        ), unsafe_allow_html=True)
     st.markdown("")
 
-    # ── BÚSQUEDA ──────────────────────────────────────
-    busqueda = st.text_input(
-        ":material/search: Buscar",
-        placeholder="Buscar por proyecto, cliente, asesor...",
-        key="search_input_proyectos"
-    )
+    # ── BÚSQUEDA + DESCARGA ────────────────────────────
+    col_search, col_download = st.columns([5, 1], vertical_alignment="bottom")
+    with col_search:
+        busqueda = st.text_input(
+            ":material/search: Buscar",
+            placeholder="Buscar por proyecto, cliente, asesor...",
+            key="search_input_proyectos"
+        )
 
     if busqueda:
         data_filtrada = data[
@@ -435,6 +456,16 @@ if not data.empty:
     data_filtrada['FECHA DE FACTURACIÓN'] = data_filtrada['FECHA DE FACTURACIÓN'].fillna("")
     data_filtrada['FECHA DE COTIZACIÓN'] = data_filtrada['FECHA DE COTIZACIÓN'].fillna("")
 
+    with col_download:
+        excel_data = to_excel(data_filtrada)
+        st.download_button(
+            label=":material/download: Excel",
+            data=excel_data,
+            file_name=f"proyectos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            width='stretch'
+        )
+
     # ── RENDER TABLA ──────────────────────────────────
     # Se manda TODO data_filtrada: los filtros de header, el orden y la
     # paginación (Anterior/Siguiente) se calculan en el navegador sobre
@@ -445,15 +476,6 @@ if not data.empty:
         data=paragraph_html,
         on_clicked_change=lambda: None,
         key=f"table_{busqueda}"
-    )
-
-    excel_data = to_excel(data_filtrada)
-    st.download_button(
-        label=":material/download: Descargar Excel",
-         data=excel_data,
-         file_name=f"proyectos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-         width='stretch'
     )
 
     # ── MANEJAR CLICKS DE BOTONES ─────────────────────

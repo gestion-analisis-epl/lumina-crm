@@ -1,13 +1,12 @@
 import streamlit as st
 from styles.tablejs import estilo_tabla_js
-from styles.table_helpers import avatar_html, ASESOR_CORTO
+from styles.table_helpers import avatar_html, ASESOR_CORTO, dataframe_to_excel
 from utils.opciones import ASESORES
 from utils.supabase_client import get_supabase_client
 import pandas as pd
 from datetime import datetime, date
 import random
 import time
-from io import BytesIO
 
 st.set_page_config(page_title="Citas", page_icon=":material/calendar_today:", layout="wide")
 
@@ -23,7 +22,7 @@ st.markdown("""
         overflow: hidden;
         box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    table { border-collapse: collapse; width: 100%; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size: 0.85rem; }
+    table { border-collapse: collapse; width: 100%; font-family: 'Inter',sans-serif; font-size: 0.85rem; }
     th { background-color: #f8f9fa; color: #495057; padding: 12px 14px; text-align: left; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #dee2e6; }
     td { padding: 10px 14px; border-bottom: 1px solid #f0f4f8; color: #212529; }
     tbody tr:nth-child(even) td { background-color: #f8f9fa; }
@@ -271,17 +270,14 @@ def generar_tabla(data, btnedit=None, btndelete=None):
     return tabla_html
 
 def to_excel(data):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        export_cols = ['ID DE CITA', 'ASESOR', 'FECHA', 'PROSPECTO', 'GIRO', 'ACCIÓN A SEGUIR', 'ÚLTIMO CONTACTO']
-        available_cols = [c for c in export_cols if c in data.columns]
-        export_df = data[available_cols].copy()
-        export_df.columns = ['ID', 'Asesor', 'Fecha', 'Prospecto', 'Giro', 'Acción a Seguir', 'Último Contacto'][:len(available_cols)]
-        for col in ['ID', 'Asesor', 'Prospecto', 'Giro', 'Acción a Seguir']:
-            if col in export_df.columns:
-                export_df[col] = export_df[col].astype(str).str.upper()
-        export_df.to_excel(writer, index=False, sheet_name='Citas')
-    return output.getvalue()
+    export_cols = ['ID DE CITA', 'ASESOR', 'FECHA', 'PROSPECTO', 'GIRO', 'ACCIÓN A SEGUIR', 'ÚLTIMO CONTACTO']
+    available_cols = [c for c in export_cols if c in data.columns]
+    export_df = data[available_cols].copy()
+    export_df.columns = ['ID', 'Asesor', 'Fecha', 'Prospecto', 'Giro', 'Acción a Seguir', 'Último Contacto'][:len(available_cols)]
+    for col in ['ID', 'Asesor', 'Prospecto', 'Giro', 'Acción a Seguir']:
+        if col in export_df.columns:
+            export_df[col] = export_df[col].astype(str).str.upper()
+    return dataframe_to_excel(export_df, sheet_name='Citas')
 
 JS = estilo_tabla_js()
 
@@ -294,12 +290,14 @@ material_table = st.components.v2.component(
 data = load_data()
 
 if not data.empty:
-    # ── BÚSQUEDA ──────────────────────────────────────
-    busqueda = st.text_input(
-        ":material/search: Buscar",
-        placeholder="Buscar por prospecto, asesor, fecha...",
-        key="search_input_citas"
-    )
+    # ── BÚSQUEDA + DESCARGA ────────────────────────────
+    col_search, col_download = st.columns([5, 1], vertical_alignment="bottom")
+    with col_search:
+        busqueda = st.text_input(
+            ":material/search: Buscar",
+            placeholder="Buscar por prospecto, asesor, fecha...",
+            key="search_input_citas"
+        )
 
     if busqueda:
         data_filtrada = data[
@@ -315,6 +313,16 @@ if not data.empty:
     data_filtrada['FECHA'] = data_filtrada['FECHA'].fillna("")
     data_filtrada['ÚLTIMO CONTACTO'] = data_filtrada['ÚLTIMO CONTACTO'].fillna("")
 
+    with col_download:
+        excel_data = to_excel(data_filtrada)
+        st.download_button(
+            label=":material/download: Excel",
+            data=excel_data,
+            file_name=f"citas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            width='stretch'
+        )
+
     # ── RENDER TABLA ──────────────────────────────────
     # Se manda TODO data_filtrada: los filtros de header, el orden y la
     # paginación (Anterior/Siguiente) se calculan en el navegador sobre
@@ -325,15 +333,6 @@ if not data.empty:
         data=paragraph_html,
         on_clicked_change=lambda: None,
         key=f"table_citas_{busqueda}"
-    )
-
-    excel_data = to_excel(data_filtrada)
-    st.download_button(
-        label=":material/download: Descargar Excel",
-        data=excel_data,
-        file_name=f"citas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        width='stretch'
     )
 
     # ── MANEJAR CLICKS DE BOTONES ─────────────────────

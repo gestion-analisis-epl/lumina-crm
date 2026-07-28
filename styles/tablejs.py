@@ -82,7 +82,7 @@ def estilo_tabla_js():
         const pager = document.createElement('div');
         pager.style.cssText = `
             display:flex; align-items:center; justify-content:space-between; gap:16px;
-            padding:12px 4px 2px 4px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+            padding:12px 4px 2px 4px; font-family:'Inter',sans-serif;
             font-size:12.5px; color:#6c757d;
         `;
         const pagerInfo = document.createElement('span');
@@ -223,7 +223,7 @@ def estilo_tabla_js():
                 background:#fff; border:1px solid #dee2e6; border-radius:8px;
                 box-shadow:0 8px 24px rgba(0,0,0,0.12); padding:10px;
                 z-index:999999; min-width:190px; max-height:240px; overflow-y:auto;
-                font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+                font-family:'Inter',sans-serif;
             `;
 
             const dropHeader = topDoc.createElement('div');

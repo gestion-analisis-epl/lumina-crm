@@ -4,48 +4,18 @@ showErrorDetails = "none"
 [server]
 enableStaticServing = true
 
-[[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-Regular.ttf"
-family = "Google Sans"
-weight = 100
-
-[[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-Regular.ttf"
-family = "Google Sans"
-weight = 300
-
-[[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-Regular.ttf"
-family = "Google Sans"
-weight = 400
-
-[[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-Medium.ttf"
-family = "Google Sans"
-weight = 500
-
-[[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-SemiBold.ttf"
-family = "Google Sans"
-weight = 700
-
-[[theme.fontFaces]]
-url = "app/static/Google_Sans/GoogleSans-Bold.ttf"
-family = "Google Sans"
-weight = 900
-
 [theme]
 base = "light"
 primaryColor = "#003057"
 backgroundColor = "#f2f3f0"
 secondaryBackgroundColor = "rgb(255, 255, 255)"
 
-font = "Google Sans, sans-serif"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
 baseFontSize = 16
-baseFontWeight = 300
-headingFont = "Google Sans, sans-serif"
-headingFontSizes = ["2.5rem", "2rem", "1,75rem"]
-headingFontWeights = [700, 500, 400]
+baseFontWeight = 400
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+headingFontSizes = ["2.5rem", "2rem", "1.75rem"]
+headingFontWeights = [700, 600, 500]
 # codeFont = "Fira Code"
 # codeFontSize = "0.8rem"
 baseRadius = "small"

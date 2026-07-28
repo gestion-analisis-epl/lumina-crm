@@ -1,4 +1,9 @@
 import hashlib
+from io import BytesIO
+
+import pandas as pd
+from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
 
 PALETTE = [
     {"bg": "#e7f1ff", "fg": "#0d6efd"},
@@ -28,6 +33,28 @@ ASESOR_CORTO = {
     'JOSÉ ALVARO MARTÍNEZ ESPEJEL':   'ALVARO MARTÍNEZ',
     'MAURICIO GUTIÉRREZ PÉREZ PALMA': 'MAURICIO GUTIÉRREZ',
 }
+
+def dataframe_to_excel(df, sheet_name, currency_cols=None):
+    """Exporta un DataFrame a Excel con encabezados en negrita, filtros
+    activos (autofiltro) y formato de moneda en las columnas indicadas."""
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
+        ws = writer.sheets[sheet_name]
+
+        for cell in ws[1]:
+            cell.font = Font(bold=True)
+
+        ws.auto_filter.ref = ws.dimensions
+
+        for col in (currency_cols or []):
+            if col not in df.columns:
+                continue
+            letter = get_column_letter(df.columns.get_loc(col) + 1)
+            for row in range(2, ws.max_row + 1):
+                ws[f"{letter}{row}"].number_format = '$#,##0.00'
+
+    return output.getvalue()
 
 def avatar_html(name):
     if not name:
